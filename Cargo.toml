@@ -1,0 +1,9 @@
+[package]
+name = "learn_opengl"
+version = "0.1.0"
+authors = ["Gidaio <killshade@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+gl = "*"
+glfw = "*"
