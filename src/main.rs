@@ -1,7 +1,7 @@
 extern crate gl;
 extern crate glfw;
 
-// use gl::types::*;
+use gl::types::*;
 use glfw::{ Context };
 use std::ffi::CString;
 
@@ -34,8 +34,8 @@ fn main() {
     let fragment_shader = create_shader(fragment_shader_source, gl::FRAGMENT_SHADER);
 
     // Create a shader program.
+    let shader_program = unsafe { gl::CreateProgram() };
     unsafe {
-        let shader_program = gl::CreateProgram();
         gl::AttachShader(shader_program, vertex_shader);
         gl::AttachShader(shader_program, fragment_shader);
         gl::LinkProgram(shader_program);
@@ -73,11 +73,10 @@ fn main() {
     }
 
     // Make a VBO for our vertices.
-    let vertices: [f32; 12] = [
-        0.5, 0.5, 0.0,
-        0.5, -0.5, 0.0,
-        -0.5, -0.5, 0.0,
-        -0.5, 0.5, 0.0
+    let vertices: [f32; 18] = [
+        0.5, -0.5, 0.0, 1.0, 0.0, 0.0,
+        -0.5, -0.5, 0.0, 0.0, 1.0, 0.0,
+        0.0, 0.5, 0.0, 0.0, 0.0, 1.0
     ];
 
     let mut vbo = 0;
@@ -92,43 +91,16 @@ fn main() {
         );
     }
 
-    // Make a vertex attribute pointer.
-    unsafe {
-        gl::VertexAttribPointer(
-            0,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            std::mem::size_of::<f32>() as i32 * 3,
-            0 as *const _
-        );
-        gl::EnableVertexAttribArray(0);
-    }
-
-    // Make an EBO for a rectangle.
-    let indices: [u32; 6] = [
-        0, 1, 2,
-        2, 3, 0
-    ];
-
-    let mut ebo = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut ebo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            std::mem::size_of_val(&indices) as isize,
-            indices.as_ptr() as *const _,
-            gl::STATIC_DRAW
-        );
-    }
+    // Make the vertex attribute pointers.
+    create_vertex_attribute_array::<f32>(0, 3, 6, 0);
+    create_vertex_attribute_array::<f32>(1, 3, 6, 3);
 
     // Main loop!
     while !window.should_close() {
         // Do rendering stuff.
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as *const _);
+            gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
         window.swap_buffers();
 
@@ -182,5 +154,30 @@ fn create_shader(source: CString, shader_type: u32) -> u32 {
         }
 
         return shader_id;
+    }
+}
+
+
+trait HasOpenGLType {
+    fn get_opengl_type() -> GLenum;
+}
+
+impl HasOpenGLType for f32 {
+    fn get_opengl_type() -> GLenum {
+        gl::FLOAT
+    }
+}
+
+fn create_vertex_attribute_array<T: HasOpenGLType>(index: u32, size: i32, stride: i32, offset: usize) {
+    unsafe {
+        gl::VertexAttribPointer(
+            index,
+            size,
+            T::get_opengl_type(),
+            gl::FALSE,
+            std::mem::size_of::<T>() as i32 * stride,
+            (std::mem::size_of::<f32>() * offset) as *const _
+        );
+        gl::EnableVertexAttribArray(index);
     }
 }
