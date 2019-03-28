@@ -116,6 +116,7 @@ fn main() {
     create_vertex_attribute_array::<f32>(1, 3, 8, 3);
     create_vertex_attribute_array::<f32>(2, 2, 8, 6);
 
+    // Set the textures!
     let _wall_texture = create_texture("./src/wall.jpg", gl::TEXTURE0, gl::RGB);
     let _face_texture = create_texture("./src/awesomeface.png", gl::TEXTURE1, gl::RGBA);
     let uniform_0_name = CString::new("texture1").unwrap();
@@ -127,16 +128,30 @@ fn main() {
         gl::Uniform1i(uniform_1_location, 1);
     }
 
+    // Get our blend uniform's location.
+    let blend_uniform_name = CString::new("blend").unwrap();
+    let blend_uniform_location = unsafe { gl::GetUniformLocation(shader_program, blend_uniform_name.as_ptr()) };
+    println!("Blend uniform location {}", blend_uniform_location);
+
+    let mut blend = 0.2;
+    let mut previous_time = glfw_obj.get_time();
+
     // Main loop!
     while !window.should_close() {
         // Do rendering stuff.
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
-            gl::UseProgram(shader_program);
-            gl::BindVertexArray(vao);
+
+            gl::Uniform1f(blend_uniform_location, blend);
+
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as *const _);
         }
         window.swap_buffers();
+
+        // Get our timer going.
+        let current_time = glfw_obj.get_time();
+        let elapsed_time = current_time - previous_time;
+        previous_time = current_time;
 
         // Handle events.
         glfw_obj.poll_events();
@@ -152,6 +167,22 @@ fn main() {
                         println!("You were pressing shift!");
                     }
                     window.set_should_close(true);
+                }
+
+                glfw::WindowEvent::Key(glfw::Key::Up, _, glfw::Action::Repeat, _) => {
+                    println!("Pressing up!");
+                    blend += (elapsed_time * 100.0) as f32;
+                    if blend > 1.0 {
+                        blend = 1.0;
+                    }
+                }
+
+                glfw::WindowEvent::Key(glfw::Key::Down, _, glfw::Action::Repeat, _) => {
+                    println!("Pressing down!");
+                    blend -= (elapsed_time * 100.0) as f32;
+                    if blend < 0.0 {
+                        blend = 0.0;
+                    }
                 }
 
                 _ => {}
