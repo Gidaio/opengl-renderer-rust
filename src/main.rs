@@ -1,5 +1,6 @@
 extern crate gl;
 extern crate glfw;
+extern crate glm;
 extern crate image;
 
 use gl::types::*;
@@ -126,6 +127,23 @@ fn main() {
         let uniform_1_location = gl::GetUniformLocation(shader_program, uniform_1_name.as_ptr());
         gl::Uniform1i(uniform_0_location, 0);
         gl::Uniform1i(uniform_1_location, 1);
+    }
+
+    // Build the transformation matrix.
+    let base_matrix = glm::mat4(
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    );
+    let rotation = glm::ext::rotate(&base_matrix, glm::radians(90.0), glm::vec3(0.0, 0.0, 1.0));
+    let scale = glm::ext::scale(&rotation, glm::vec3(0.5, 0.5, 0.5));
+
+    // Set the transform matrix.
+    let transform_matrix_name = CString::new("transform").unwrap();
+    unsafe {
+        let transform_matrix_location = gl::GetUniformLocation(shader_program, transform_matrix_name.as_ptr());
+        gl::UniformMatrix4fv(transform_matrix_location, 1, gl::FALSE, scale.as_array()[0].as_array().as_ptr());
     }
 
     // Get our blend uniform's location.
