@@ -120,35 +120,19 @@ fn main() {
     // Set the textures!
     let _wall_texture = create_texture("./src/wall.jpg", gl::TEXTURE0, gl::RGB);
     let _face_texture = create_texture("./src/awesomeface.png", gl::TEXTURE1, gl::RGBA);
-    let uniform_0_name = CString::new("texture1").unwrap();
-    let uniform_1_name = CString::new("texture2").unwrap();
-    unsafe {
-        let uniform_0_location = gl::GetUniformLocation(shader_program, uniform_0_name.as_ptr());
-        let uniform_1_location = gl::GetUniformLocation(shader_program, uniform_1_name.as_ptr());
-        gl::Uniform1i(uniform_0_location, 0);
-        gl::Uniform1i(uniform_1_location, 1);
-    }
 
-    // Build the transformation matrix.
-    let base_matrix = glm::mat4(
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    );
-    let rotation = glm::ext::rotate(&base_matrix, glm::radians(90.0), glm::vec3(0.0, 0.0, 1.0));
-    let scale = glm::ext::scale(&rotation, glm::vec3(0.5, 0.5, 0.5));
+    let texture1_location = get_uniform_location(shader_program, "texture1");
+    let texture2_location = get_uniform_location(shader_program, "texture2");
+    unsafe {
+        gl::Uniform1i(texture1_location, 0);
+        gl::Uniform1i(texture2_location, 1);
+    }
 
     // Set the transform matrix.
-    let transform_matrix_name = CString::new("transform").unwrap();
-    unsafe {
-        let transform_matrix_location = gl::GetUniformLocation(shader_program, transform_matrix_name.as_ptr());
-        gl::UniformMatrix4fv(transform_matrix_location, 1, gl::FALSE, scale.as_array()[0].as_array().as_ptr());
-    }
+    let transform_matrix_location = get_uniform_location(shader_program, "transform");
 
     // Get our blend uniform's location.
-    let blend_uniform_name = CString::new("blend").unwrap();
-    let blend_uniform_location = unsafe { gl::GetUniformLocation(shader_program, blend_uniform_name.as_ptr()) };
+    let blend_uniform_location = get_uniform_location(shader_program, "blend");
     println!("Blend uniform location {}", blend_uniform_location);
 
     let mut blend = 0.2;
@@ -156,20 +140,31 @@ fn main() {
 
     // Main loop!
     while !window.should_close() {
+        // Get our timer going.
+        let current_time = glfw_obj.get_time();
+        let elapsed_time = current_time - previous_time;
+        previous_time = current_time;
+
+        // Work out the transformation matrix.
+        let base_matrix = glm::mat4(
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        );
+        let translation = glm::ext::translate(&base_matrix, glm::vec3(0.5, -0.5, 0.0));
+        let rotation = glm::ext::rotate(&translation, current_time as f32, glm::vec3(0.0, 0.0, 1.0));
+
         // Do rendering stuff.
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             gl::Uniform1f(blend_uniform_location, blend);
+            gl::UniformMatrix4fv(transform_matrix_location, 1, gl::FALSE, rotation.as_array()[0].as_array().as_ptr());
 
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as *const _);
         }
         window.swap_buffers();
-
-        // Get our timer going.
-        let current_time = glfw_obj.get_time();
-        let elapsed_time = current_time - previous_time;
-        previous_time = current_time;
 
         // Handle events.
         glfw_obj.poll_events();
@@ -298,4 +293,9 @@ fn create_texture(path: &'static str, texture_spot: u32, pixel_type: u32) -> u32
     }
 
     return texture;
+}
+
+fn get_uniform_location(shader_program: u32, uniform_name: &'static str) -> i32 {
+    let uniform_cstring = CString::new(uniform_name).unwrap();
+    unsafe { gl::GetUniformLocation(shader_program, uniform_cstring.as_ptr()) }
 }
