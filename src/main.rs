@@ -133,15 +133,14 @@ fn main() {
 
     // Get our blend uniform's location.
     let blend_uniform_location = get_uniform_location(shader_program, "blend");
-    println!("Blend uniform location {}", blend_uniform_location);
 
     let mut blend = 0.2;
-    let mut previous_time = glfw_obj.get_time();
+    let mut previous_time = glfw_obj.get_time() as f32;
 
     // Main loop!
     while !window.should_close() {
         // Get our timer going.
-        let current_time = glfw_obj.get_time();
+        let current_time = glfw_obj.get_time() as f32;
         let elapsed_time = current_time - previous_time;
         previous_time = current_time;
 
@@ -152,8 +151,11 @@ fn main() {
             0.0, 0.0, 1.0, 0.0,
             0.0, 0.0, 0.0, 1.0
         );
-        let translation = glm::ext::translate(&base_matrix, glm::vec3(0.5, -0.5, 0.0));
-        let rotation = glm::ext::rotate(&translation, current_time as f32, glm::vec3(0.0, 0.0, 1.0));
+        let lower_translation = glm::ext::translate(&base_matrix, glm::vec3(0.5, -0.5, 0.0));
+        let rotation = glm::ext::rotate(&lower_translation, current_time, glm::vec3(0.0, 0.0, 1.0));
+
+        let upper_translation = glm::ext::translate(&base_matrix, glm::vec3(-0.5, 0.5, 0.0));
+        let scaling = glm::ext::scale(&upper_translation, glm::vec3(current_time.sin(), current_time.cos(), 1.0));
 
         // Do rendering stuff.
         unsafe {
@@ -161,6 +163,10 @@ fn main() {
 
             gl::Uniform1f(blend_uniform_location, blend);
             gl::UniformMatrix4fv(transform_matrix_location, 1, gl::FALSE, rotation.as_array()[0].as_array().as_ptr());
+
+            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as *const _);
+
+            gl::UniformMatrix4fv(transform_matrix_location, 1, gl::FALSE, scaling.as_array()[0].as_array().as_ptr());
 
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as *const _);
         }
@@ -184,7 +190,7 @@ fn main() {
 
                 glfw::WindowEvent::Key(glfw::Key::Up, _, glfw::Action::Repeat, _) => {
                     println!("Pressing up!");
-                    blend += (elapsed_time * 100.0) as f32;
+                    blend += elapsed_time * 100.0;
                     if blend > 1.0 {
                         blend = 1.0;
                     }
@@ -192,7 +198,7 @@ fn main() {
 
                 glfw::WindowEvent::Key(glfw::Key::Down, _, glfw::Action::Repeat, _) => {
                     println!("Pressing down!");
-                    blend -= (elapsed_time * 100.0) as f32;
+                    blend -= elapsed_time * 100.0;
                     if blend < 0.0 {
                         blend = 0.0;
                     }
