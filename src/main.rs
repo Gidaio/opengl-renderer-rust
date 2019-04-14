@@ -129,13 +129,19 @@ fn main() {
     }
 
     // Set the transform matrix.
-    let transform_matrix_location = get_uniform_location(shader_program, "transform");
+    let model_matrix_location = get_uniform_location(shader_program, "model");
+    let view_matrix_location = get_uniform_location(shader_program, "view");
+    let projection_matrix_location = get_uniform_location(shader_program, "projection");
 
     // Get our blend uniform's location.
     let blend_uniform_location = get_uniform_location(shader_program, "blend");
 
     let mut blend = 0.2;
     let mut previous_time = glfw_obj.get_time() as f32;
+
+    let model_matrix = glm::ext::rotate(&identity_matrix(), glm::radians(-55.0), glm::vec3(1.0, 0.0, 0.0));
+    let view_matrix = glm::ext::translate(&identity_matrix(), glm::vec3(0.0, 0.0, -3.0));
+    let projection_matrix = glm::ext::perspective(glm::radians(45.0), 800.0 / 600.0, 0.1, 100.0);
 
     // Main loop!
     while !window.should_close() {
@@ -144,29 +150,14 @@ fn main() {
         let elapsed_time = current_time - previous_time;
         previous_time = current_time;
 
-        // Work out the transformation matrix.
-        let base_matrix = glm::mat4(
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0
-        );
-        let lower_translation = glm::ext::translate(&base_matrix, glm::vec3(0.5, -0.5, 0.0));
-        let rotation = glm::ext::rotate(&lower_translation, current_time, glm::vec3(0.0, 0.0, 1.0));
-
-        let upper_translation = glm::ext::translate(&base_matrix, glm::vec3(-0.5, 0.5, 0.0));
-        let scaling = glm::ext::scale(&upper_translation, glm::vec3(current_time.sin(), current_time.cos(), 1.0));
-
         // Do rendering stuff.
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             gl::Uniform1f(blend_uniform_location, blend);
-            gl::UniformMatrix4fv(transform_matrix_location, 1, gl::FALSE, rotation.as_array()[0].as_array().as_ptr());
-
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as *const _);
-
-            gl::UniformMatrix4fv(transform_matrix_location, 1, gl::FALSE, scaling.as_array()[0].as_array().as_ptr());
+            gl::UniformMatrix4fv(model_matrix_location, 1, gl::FALSE, model_matrix.as_array()[0].as_array().as_ptr());
+            gl::UniformMatrix4fv(view_matrix_location, 1, gl::FALSE, view_matrix.as_array()[0].as_array().as_ptr());
+            gl::UniformMatrix4fv(projection_matrix_location, 1, gl::FALSE, projection_matrix.as_array()[0].as_array().as_ptr());
 
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as *const _);
         }
@@ -304,4 +295,13 @@ fn create_texture(path: &'static str, texture_spot: u32, pixel_type: u32) -> u32
 fn get_uniform_location(shader_program: u32, uniform_name: &'static str) -> i32 {
     let uniform_cstring = CString::new(uniform_name).unwrap();
     unsafe { gl::GetUniformLocation(shader_program, uniform_cstring.as_ptr()) }
+}
+
+fn identity_matrix() -> glm::Matrix4<f32> {
+    glm::mat4(
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    )
 }
