@@ -14,18 +14,22 @@ fn main() {
     let mut glfw_obj = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
     // Make the window.
+    let window_width = 800;
+    let window_height = 600;
     glfw_obj.window_hint(glfw::WindowHint::ContextVersionMajor(3));
     glfw_obj.window_hint(glfw::WindowHint::ContextVersionMinor(3));
     glfw_obj.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
-    let (mut window, events) = glfw_obj.create_window(800, 600, "LearnOpenGL", glfw::WindowMode::Windowed).expect("Failed to create a window.");
+    let (mut window, events) = glfw_obj.create_window(window_width, window_height, "LearnOpenGL", glfw::WindowMode::Windowed).expect("Failed to create a window.");
     window.make_current();
     window.set_key_polling(true);
+    window.set_cursor_pos_polling(true);
     window.set_framebuffer_size_polling(true);
+    window.set_cursor_mode(glfw::CursorMode::Disabled);
 
     // Setup OpenGL.
     gl::load_with(|s| window.get_proc_address(s));
     unsafe {
-        gl::Viewport(0, 0, 800, 600);
+        gl::Viewport(0, 0, window_width as i32, window_height as i32);
         gl::ClearColor(0.2, 0.3, 0.3, 1.0);
         gl::Enable(gl::DEPTH_TEST);
     }
@@ -136,14 +140,15 @@ fn main() {
         gl::Uniform1i(texture2_location, 1);
     }
 
-    // Set the transform matrix.
+    // Get our matrix locations.
     let model_matrix_location = get_uniform_location(shader_program, "model");
     let view_matrix_location = get_uniform_location(shader_program, "view");
     let projection_matrix_location = get_uniform_location(shader_program, "projection");
 
-    let view_matrix = glm::ext::translate(&identity_matrix(), glm::vec3(0.0, 0.0, -3.0));
-    let projection_matrix = glm::ext::perspective(glm::radians(45.0), 800.0 / 600.0, 0.1, 100.0);
+    // Set up the projection matrix (this doesn't change).
+    let projection_matrix = glm::ext::perspective(glm::radians(45.0), window_width as f32 / window_height as f32, 0.1, 100.0);
 
+    // Lots of cubes!
     let cube_positions: [glm::Vector3<f32>; 10] = [
         glm::vec3(0.0, 0.0, 0.0),
         glm::vec3(2.0, 5.0, -15.0),
@@ -157,10 +162,51 @@ fn main() {
         glm::vec3(-1.3, 1.0, -1.5)
     ];
 
+    // Do some camera stuff!
+    let camera_speed = 5.0;
+    let camera_sensitivity = 0.5;
+    let mut camera_position = glm::vec3(0.0, 1.0, 3.0);
+    let mut camera_pitch = 0.0;
+    let mut camera_yaw = 270.0;
+    let camera_up = glm::vec3(0.0, 1.0, 0.0);
+
+    let mut first_mouse_input = true;
+    let mut previous_cursor_x = -1.0;
+    let mut previous_cursor_y = -1.0;
+    let mut previous_time = glfw_obj.get_time() as f32;
+
     // Main loop!
     while !window.should_close() {
         // Get our timer going.
         let current_time = glfw_obj.get_time() as f32;
+        let delta_time = current_time - previous_time;
+        previous_time = current_time;
+
+        let camera_forward = glm::builtin::normalize(glm::vec3(
+            -((glm::radians(camera_pitch) as f32).cos() * (glm::radians(camera_yaw) as f32).cos()),
+            -(glm::radians(camera_pitch) as f32).sin(),
+            -((glm::radians(camera_pitch) as f32).cos() * (glm::radians(camera_yaw) as f32).sin())
+        ));
+
+        let camera_right = glm::builtin::normalize(
+            glm::builtin::cross(camera_up, camera_forward)
+        );
+        let camera_up = glm::builtin::cross(camera_forward, camera_right);
+
+        let rotation_matrix = glm::mat4(
+            camera_right.x, camera_up.x, camera_forward.x, 0.0,
+            camera_right.y, camera_up.y, camera_forward.y, 0.0,
+            camera_right.z, camera_up.z, camera_forward.z, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        );
+        let position_matrix = glm::mat4(
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            -camera_position.x, -camera_position.y, -camera_position.z, 1.0
+        );
+
+        let view_matrix = rotation_matrix * position_matrix;
 
         // Do rendering stuff.
         unsafe {
@@ -196,8 +242,47 @@ fn main() {
                     window.set_should_close(true);
                 }
 
+                glfw::WindowEvent::CursorPos(cursor_x, cursor_y) => {
+                    if first_mouse_input {
+                        previous_cursor_x = cursor_x;
+                        previous_cursor_y = cursor_y;
+                        first_mouse_input = false;
+                    }
+
+                    let cursor_delta_x = cursor_x - previous_cursor_x;
+                    let cursor_delta_y = cursor_y - previous_cursor_y;
+
+                    previous_cursor_x = cursor_x;
+                    previous_cursor_y = cursor_y;
+
+                    println!("Cursor Delta: {}, {}", cursor_delta_x, cursor_delta_y);
+
+                    camera_pitch = camera_pitch - cursor_delta_y * camera_sensitivity;
+                    camera_yaw = camera_yaw + cursor_delta_x * camera_sensitivity;
+
+                    if camera_pitch > 89.0 {
+                        camera_pitch = 89.0
+                    }
+                    else if camera_pitch < -89.0 {
+                        camera_pitch = -89.0
+                    }
+                }
+
                 _ => {}
             }
+        }
+
+        if window.get_key(glfw::Key::E) == glfw::Action::Press {
+            camera_position = camera_position - camera_forward * camera_speed * delta_time;
+        }
+        if window.get_key(glfw::Key::D) == glfw::Action::Press {
+            camera_position = camera_position + camera_forward * camera_speed * delta_time;
+        }
+        if window.get_key(glfw::Key::F) == glfw::Action::Press {
+            camera_position = camera_position + camera_right * camera_speed * delta_time;
+        }
+        if window.get_key(glfw::Key::S) == glfw::Action::Press {
+            camera_position = camera_position - camera_right * camera_speed * delta_time;
         }
     }
 }
