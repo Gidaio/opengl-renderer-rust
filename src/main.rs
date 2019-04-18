@@ -27,6 +27,7 @@ fn main() {
     unsafe {
         gl::Viewport(0, 0, 800, 600);
         gl::ClearColor(0.2, 0.3, 0.3, 1.0);
+        gl::Enable(gl::DEPTH_TEST);
     }
 
     // Compile the shaders.
@@ -76,11 +77,15 @@ fn main() {
     }
 
     // Make a VBO for our vertices.
-    let vertices: [f32; 32] = [
-        0.5, 0.5, 0.0,    1.0, 0.0, 0.0,  1.0, 0.0,
-        -0.5, 0.5, 0.0,   1.0, 1.0, 0.0,  0.0, 0.0,
-        -0.5, -0.5, 0.0,  0.0, 0.0, 1.0,  0.0, 1.0,
-        0.5, -0.5, 0.0,   0.0, 1.0, 0.0,  1.0, 1.0
+    let vertices: [f32; 40] = [
+        0.5, 0.5, 0.5,     1.0, 0.0,
+        -0.5, 0.5, 0.5,    0.0, 0.0,
+        -0.5, -0.5, 0.5,   0.0, 1.0,
+        0.5, -0.5, 0.5,    1.0, 1.0,
+        0.5, 0.5, -0.5,    0.0, 0.0,
+        -0.5, 0.5, -0.5,   1.0, 0.0,
+        -0.5, -0.5, -0.5,  1.0, 1.0,
+        0.5, -0.5, -0.5,   0.0, 1.0
     ];
 
     let mut vbo = 0;
@@ -95,9 +100,13 @@ fn main() {
         );
     }
 
-    let triangles: [i32; 6] = [
-        0, 1, 2,
-        2, 3, 0
+    let triangles: [i32; 36] = [
+        0, 1, 2,  2, 3, 0,
+        4, 5, 1,  1, 0, 4,
+        1, 5, 6,  6, 2, 1,
+        5, 4, 7,  7, 6, 5,
+        4, 0, 3,  3, 7, 4,
+        3, 2, 6,  6, 7, 3,
     ];
 
     let mut ebo = 0;
@@ -113,9 +122,8 @@ fn main() {
     }
 
     // Make the vertex attribute pointers.
-    create_vertex_attribute_array::<f32>(0, 3, 8, 0);
-    create_vertex_attribute_array::<f32>(1, 3, 8, 3);
-    create_vertex_attribute_array::<f32>(2, 2, 8, 6);
+    create_vertex_attribute_array::<f32>(0, 3, 5, 0);
+    create_vertex_attribute_array::<f32>(1, 2, 5, 3);
 
     // Set the textures!
     let _wall_texture = create_texture("./src/wall.jpg", gl::TEXTURE0, gl::RGB);
@@ -133,33 +141,42 @@ fn main() {
     let view_matrix_location = get_uniform_location(shader_program, "view");
     let projection_matrix_location = get_uniform_location(shader_program, "projection");
 
-    // Get our blend uniform's location.
-    let blend_uniform_location = get_uniform_location(shader_program, "blend");
-
-    let mut blend = 0.2;
-    let mut previous_time = glfw_obj.get_time() as f32;
-
-    let model_matrix = glm::ext::rotate(&identity_matrix(), glm::radians(-55.0), glm::vec3(1.0, 0.0, 0.0));
     let view_matrix = glm::ext::translate(&identity_matrix(), glm::vec3(0.0, 0.0, -3.0));
     let projection_matrix = glm::ext::perspective(glm::radians(45.0), 800.0 / 600.0, 0.1, 100.0);
+
+    let cube_positions: [glm::Vector3<f32>; 10] = [
+        glm::vec3(0.0, 0.0, 0.0),
+        glm::vec3(2.0, 5.0, -15.0),
+        glm::vec3(-1.5, -2.2, -2.5),
+        glm::vec3(-3.8, -2.0, -12.3),
+        glm::vec3(2.4, -0.4, -3.5),
+        glm::vec3(-1.7, 3.0, -7.5),
+        glm::vec3(1.3, -2.0, -2.5),
+        glm::vec3(1.5, 2.0, -2.5),
+        glm::vec3(1.5, 0.2, -1.5),
+        glm::vec3(-1.3, 1.0, -1.5)
+    ];
 
     // Main loop!
     while !window.should_close() {
         // Get our timer going.
         let current_time = glfw_obj.get_time() as f32;
-        let elapsed_time = current_time - previous_time;
-        previous_time = current_time;
 
         // Do rendering stuff.
         unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-            gl::Uniform1f(blend_uniform_location, blend);
-            gl::UniformMatrix4fv(model_matrix_location, 1, gl::FALSE, model_matrix.as_array()[0].as_array().as_ptr());
             gl::UniformMatrix4fv(view_matrix_location, 1, gl::FALSE, view_matrix.as_array()[0].as_array().as_ptr());
             gl::UniformMatrix4fv(projection_matrix_location, 1, gl::FALSE, projection_matrix.as_array()[0].as_array().as_ptr());
 
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as *const _);
+            for cube_index in 0..10 {
+                let mut model_matrix = glm::ext::translate(&identity_matrix(), cube_positions[cube_index]);
+                let angle = current_time * 50.0 + 20.0 * cube_index as f32;
+                model_matrix = glm::ext::rotate(&model_matrix, glm::radians(angle), glm::vec3(0.5, 1.0, 0.0));
+
+                gl::UniformMatrix4fv(model_matrix_location, 1, gl::FALSE, model_matrix.as_array()[0].as_array().as_ptr());
+                gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, 0 as *const _);
+            }
         }
         window.swap_buffers();
 
@@ -177,22 +194,6 @@ fn main() {
                         println!("You were pressing shift!");
                     }
                     window.set_should_close(true);
-                }
-
-                glfw::WindowEvent::Key(glfw::Key::Up, _, glfw::Action::Repeat, _) => {
-                    println!("Pressing up!");
-                    blend += elapsed_time * 100.0;
-                    if blend > 1.0 {
-                        blend = 1.0;
-                    }
-                }
-
-                glfw::WindowEvent::Key(glfw::Key::Down, _, glfw::Action::Repeat, _) => {
-                    println!("Pressing down!");
-                    blend -= elapsed_time * 100.0;
-                    if blend < 0.0 {
-                        blend = 0.0;
-                    }
                 }
 
                 _ => {}
