@@ -9,6 +9,67 @@ use image::GenericImageView;
 use std::ffi::CString;
 
 
+struct Camera {
+    speed: f32,
+    sensitivity: f32,
+    up: glm::Vector3<f32>,
+
+    position: glm::Vector3<f32>,
+    pitch: f32,
+    yaw: f32,
+
+    x_axis: glm::Vector3<f32>,
+    y_axis: glm::Vector3<f32>,
+    z_axis: glm::Vector3<f32>
+}
+
+impl Camera {
+    fn new(speed: f32, sensitivity: f32, up: glm::Vector3<f32>, position: glm::Vector3<f32>) -> Camera {
+        Camera {
+            speed,
+            sensitivity,
+            up,
+
+            position,
+            pitch: 0.0,
+            yaw: 0.0,
+
+            x_axis: glm::vec3(0.0, 0.0, 0.0),
+            y_axis: glm::vec3(0.0, 0.0, 0.0),
+            z_axis: glm::vec3(0.0, 0.0, 0.0)
+        }
+    }
+
+    fn get_view_matrix(&mut self) -> glm::Matrix4<f32> {
+        self.z_axis = glm::builtin::normalize(glm::vec3(
+            -((glm::radians(self.pitch) as f32).cos() * (glm::radians(self.yaw) as f32).cos()),
+            -(glm::radians(self.pitch) as f32).sin(),
+            -((glm::radians(self.pitch) as f32).cos() * (glm::radians(self.yaw) as f32).sin())
+        ));
+
+        self.x_axis = glm::builtin::normalize(
+            glm::builtin::cross(self.up, self.z_axis)
+        );
+        self.y_axis = glm::builtin::cross(self.z_axis, self.x_axis);
+
+        let rotation_matrix = glm::mat4(
+            self.x_axis.x, self.y_axis.x, self.z_axis.x, 0.0,
+            self.x_axis.y, self.y_axis.y, self.z_axis.y, 0.0,
+            self.x_axis.z, self.y_axis.z, self.z_axis.z, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        );
+        let position_matrix = glm::mat4(
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            -self.position.x, -self.position.y, -self.position.z, 1.0
+        );
+
+        rotation_matrix * position_matrix
+    }
+}
+
+
 fn main() {
     // Initialize GLFW.
     let mut glfw_obj = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -162,14 +223,10 @@ fn main() {
         glm::vec3(-1.3, 1.0, -1.5)
     ];
 
-    // Do some camera stuff!
-    let camera_speed = 5.0;
-    let camera_sensitivity = 0.5;
-    let mut camera_position = glm::vec3(0.0, 1.0, 3.0);
-    let mut camera_pitch = 0.0;
-    let mut camera_yaw = 270.0;
-    let camera_up = glm::vec3(0.0, 1.0, 0.0);
+    // Set up the basic camera.
+    let mut camera = Camera::new(5.0, 0.5, glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 5.0));
 
+    // This is for mouse input.
     let mut first_mouse_input = true;
     let mut previous_cursor_x = -1.0;
     let mut previous_cursor_y = -1.0;
@@ -182,31 +239,7 @@ fn main() {
         let delta_time = current_time - previous_time;
         previous_time = current_time;
 
-        let camera_forward = glm::builtin::normalize(glm::vec3(
-            -((glm::radians(camera_pitch) as f32).cos() * (glm::radians(camera_yaw) as f32).cos()),
-            -(glm::radians(camera_pitch) as f32).sin(),
-            -((glm::radians(camera_pitch) as f32).cos() * (glm::radians(camera_yaw) as f32).sin())
-        ));
-
-        let camera_right = glm::builtin::normalize(
-            glm::builtin::cross(camera_up, camera_forward)
-        );
-        let camera_up = glm::builtin::cross(camera_forward, camera_right);
-
-        let rotation_matrix = glm::mat4(
-            camera_right.x, camera_up.x, camera_forward.x, 0.0,
-            camera_right.y, camera_up.y, camera_forward.y, 0.0,
-            camera_right.z, camera_up.z, camera_forward.z, 0.0,
-            0.0, 0.0, 0.0, 1.0
-        );
-        let position_matrix = glm::mat4(
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            -camera_position.x, -camera_position.y, -camera_position.z, 1.0
-        );
-
-        let view_matrix = rotation_matrix * position_matrix;
+        let view_matrix = camera.get_view_matrix();
 
         // Do rendering stuff.
         unsafe {
@@ -215,7 +248,7 @@ fn main() {
             gl::UniformMatrix4fv(view_matrix_location, 1, gl::FALSE, view_matrix.as_array()[0].as_array().as_ptr());
             gl::UniformMatrix4fv(projection_matrix_location, 1, gl::FALSE, projection_matrix.as_array()[0].as_array().as_ptr());
 
-            for cube_index in 0..10 {
+            for cube_index in 0..cube_positions.len() {
                 let mut model_matrix = glm::ext::translate(&identity_matrix(), cube_positions[cube_index]);
                 let angle = current_time * 50.0 + 20.0 * cube_index as f32;
                 model_matrix = glm::ext::rotate(&model_matrix, glm::radians(angle), glm::vec3(0.5, 1.0, 0.0));
@@ -255,16 +288,14 @@ fn main() {
                     previous_cursor_x = cursor_x;
                     previous_cursor_y = cursor_y;
 
-                    println!("Cursor Delta: {}, {}", cursor_delta_x, cursor_delta_y);
+                    camera.pitch = camera.pitch - cursor_delta_y as f32 * camera.sensitivity;
+                    camera.yaw = camera.yaw + cursor_delta_x as f32 * camera.sensitivity;
 
-                    camera_pitch = camera_pitch - cursor_delta_y * camera_sensitivity;
-                    camera_yaw = camera_yaw + cursor_delta_x * camera_sensitivity;
-
-                    if camera_pitch > 89.0 {
-                        camera_pitch = 89.0
+                    if camera.pitch > 89.0 {
+                        camera.pitch = 89.0
                     }
-                    else if camera_pitch < -89.0 {
-                        camera_pitch = -89.0
+                    else if camera.pitch < -89.0 {
+                        camera.pitch = -89.0
                     }
                 }
 
@@ -273,16 +304,16 @@ fn main() {
         }
 
         if window.get_key(glfw::Key::E) == glfw::Action::Press {
-            camera_position = camera_position - camera_forward * camera_speed * delta_time;
+            camera.position = camera.position - camera.z_axis * camera.speed * delta_time;
         }
         if window.get_key(glfw::Key::D) == glfw::Action::Press {
-            camera_position = camera_position + camera_forward * camera_speed * delta_time;
+            camera.position = camera.position + camera.z_axis * camera.speed * delta_time;
         }
         if window.get_key(glfw::Key::F) == glfw::Action::Press {
-            camera_position = camera_position + camera_right * camera_speed * delta_time;
+            camera.position = camera.position + camera.x_axis * camera.speed * delta_time;
         }
         if window.get_key(glfw::Key::S) == glfw::Action::Press {
-            camera_position = camera_position - camera_right * camera_speed * delta_time;
+            camera.position = camera.position - camera.x_axis * camera.speed * delta_time;
         }
     }
 }
