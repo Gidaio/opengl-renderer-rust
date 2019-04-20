@@ -38,40 +38,41 @@ fn main() {
     }
 
     // Create a shader program.
-    let shader_program = create_program("shader");
+    let target_shader_program = create_program("target");
+    unsafe { gl::UseProgram(target_shader_program); }
 
     // Make a VAO!
-    let mut vao = 0;
+    let mut target_vao = 0;
     unsafe {
-        gl::GenVertexArrays(1, &mut vao);
-        gl::BindVertexArray(vao);
+        gl::GenVertexArrays(1, &mut target_vao);
+        gl::BindVertexArray(target_vao);
     }
 
-    // Make a VBO for our vertices.
-    let vertices: [f32; 40] = [
-        0.5, 0.5, 0.5,     1.0, 0.0,
-        -0.5, 0.5, 0.5,    0.0, 0.0,
-        -0.5, -0.5, 0.5,   0.0, 1.0,
-        0.5, -0.5, 0.5,    1.0, 1.0,
-        0.5, 0.5, -0.5,    0.0, 0.0,
-        -0.5, 0.5, -0.5,   1.0, 0.0,
-        -0.5, -0.5, -0.5,  1.0, 1.0,
-        0.5, -0.5, -0.5,   0.0, 1.0
+    // Make a VBO for our cube mesh.
+    let cube_mesh: [f32; 24] = [
+        0.5, 0.5, 0.5,
+        -0.5, 0.5, 0.5,
+        -0.5, -0.5, 0.5,
+        0.5, -0.5, 0.5,
+        0.5, 0.5, -0.5,
+        -0.5, 0.5, -0.5,
+        -0.5, -0.5, -0.5,
+        0.5, -0.5, -0.5
     ];
 
-    let mut vbo = 0;
+    let mut cube_vbo = 0;
     unsafe {
-        gl::GenBuffers(1, &mut vbo);
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::GenBuffers(1, &mut cube_vbo);
+        gl::BindBuffer(gl::ARRAY_BUFFER, cube_vbo);
         gl::BufferData(
             gl::ARRAY_BUFFER,
-            std::mem::size_of_val(&vertices) as isize,
-            vertices.as_ptr() as *const _,
+            std::mem::size_of_val(&cube_mesh) as isize,
+            cube_mesh.as_ptr() as *const _,
             gl::STATIC_DRAW
         );
     }
 
-    let triangles: [i32; 36] = [
+    let cube_triangles: [i32; 36] = [
         0, 1, 2,  2, 3, 0,
         4, 5, 1,  1, 0, 4,
         1, 5, 6,  6, 2, 1,
@@ -80,54 +81,56 @@ fn main() {
         3, 2, 6,  6, 7, 3,
     ];
 
-    let mut ebo = 0;
+    let mut cube_ebo = 0;
     unsafe {
-        gl::GenBuffers(1, &mut ebo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        gl::GenBuffers(1, &mut cube_ebo);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, cube_ebo);
         gl::BufferData(
             gl::ELEMENT_ARRAY_BUFFER,
-            std::mem::size_of_val(&triangles) as isize,
-            triangles.as_ptr() as *const _,
+            std::mem::size_of_val(&cube_triangles) as isize,
+            cube_triangles.as_ptr() as *const _,
             gl::STATIC_DRAW
         );
     }
 
     // Make the vertex attribute pointers.
-    create_vertex_attribute_array::<f32>(0, 3, 5, 0);
-    create_vertex_attribute_array::<f32>(1, 2, 5, 3);
-
-    // Set the textures!
-    let _wall_texture = create_texture("./assets/wall.jpg", gl::TEXTURE0, gl::RGB);
-    let _face_texture = create_texture("./assets/awesomeface.png", gl::TEXTURE1, gl::RGBA);
-
-    let texture1_location = get_uniform_location(shader_program, "texture1");
-    let texture2_location = get_uniform_location(shader_program, "texture2");
-    unsafe {
-        gl::Uniform1i(texture1_location, 0);
-        gl::Uniform1i(texture2_location, 1);
-    }
+    create_vertex_attribute_array::<f32>(0, 3, 3, 0);
 
     // Get our matrix locations.
-    let model_matrix_location = get_uniform_location(shader_program, "model");
-    let view_matrix_location = get_uniform_location(shader_program, "view");
-    let projection_matrix_location = get_uniform_location(shader_program, "projection");
+    let target_model_matrix_location = get_uniform_location(target_shader_program, "model");
+    let target_view_matrix_location = get_uniform_location(target_shader_program, "view");
+    let target_projection_matrix_location = get_uniform_location(target_shader_program, "projection");
+
+    let target_object_color_location = get_uniform_location(target_shader_program, "objectColor");
+    let target_light_color_location = get_uniform_location(target_shader_program, "lightColor");
+
+    // Make a new shader for our lamp.
+    let lamp_shader_program = create_program("lamp");
+    unsafe { gl::UseProgram(lamp_shader_program); }
+
+    // Make a new VAO for the lamp.
+    let mut lamp_vao = 0;
+    unsafe {
+        gl::GenVertexArrays(1, &mut lamp_vao);
+        gl::BindVertexArray(lamp_vao);
+    }
+
+    // Reuse the same mesh (VBO and EBO) for the lamp.
+    unsafe {
+        gl::BindBuffer(gl::ARRAY_BUFFER, cube_vbo);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, cube_ebo);
+    }
+
+    // Make a new attribute array for it (currently, it'll be the same).
+    create_vertex_attribute_array::<f32>(0, 3, 3, 0);
+
+    // Get our matrix locations.
+    let lamp_model_matrix_location = get_uniform_location(lamp_shader_program, "model");
+    let lamp_view_matrix_location = get_uniform_location(lamp_shader_program, "view");
+    let lamp_projection_matrix_location = get_uniform_location(lamp_shader_program, "projection");
 
     // Set up the projection matrix (this doesn't change).
     let projection_matrix = glm::ext::perspective(glm::radians(45.0), window_width as f32 / window_height as f32, 0.1, 100.0);
-
-    // Lots of cubes!
-    let cube_positions: [glm::Vector3<f32>; 10] = [
-        glm::vec3(0.0, 0.0, 0.0),
-        glm::vec3(2.0, 5.0, -15.0),
-        glm::vec3(-1.5, -2.2, -2.5),
-        glm::vec3(-3.8, -2.0, -12.3),
-        glm::vec3(2.4, -0.4, -3.5),
-        glm::vec3(-1.7, 3.0, -7.5),
-        glm::vec3(1.3, -2.0, -2.5),
-        glm::vec3(1.5, 2.0, -2.5),
-        glm::vec3(1.5, 0.2, -1.5),
-        glm::vec3(-1.3, 1.0, -1.5)
-    ];
 
     // Set up the basic camera.
     let mut camera = camera::Camera::new(5.0, 0.1, glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 5.0));
@@ -151,17 +154,26 @@ fn main() {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-            gl::UniformMatrix4fv(view_matrix_location, 1, gl::FALSE, view_matrix.as_array()[0].as_array().as_ptr());
-            gl::UniformMatrix4fv(projection_matrix_location, 1, gl::FALSE, projection_matrix.as_array()[0].as_array().as_ptr());
+            // Render the target cube.
+            gl::UseProgram(target_shader_program);
+            gl::UniformMatrix4fv(target_model_matrix_location, 1, gl::FALSE, identity_matrix().as_array()[0].as_array().as_ptr());
+            gl::UniformMatrix4fv(target_view_matrix_location, 1, gl::FALSE, view_matrix.as_array()[0].as_array().as_ptr());
+            gl::UniformMatrix4fv(target_projection_matrix_location, 1, gl::FALSE, projection_matrix.as_array()[0].as_array().as_ptr());
+            gl::Uniform3f(target_object_color_location, 1.0, 0.5, 0.31);
+            gl::Uniform3f(target_light_color_location, 1.0, 1.0, 1.0);
 
-            for cube_index in 0..cube_positions.len() {
-                let mut model_matrix = glm::ext::translate(&identity_matrix(), cube_positions[cube_index]);
-                let angle = current_time * 50.0 + 20.0 * cube_index as f32;
-                model_matrix = glm::ext::rotate(&model_matrix, glm::radians(angle), glm::vec3(0.5, 1.0, 0.0));
+            gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, 0 as *const _);
 
-                gl::UniformMatrix4fv(model_matrix_location, 1, gl::FALSE, model_matrix.as_array()[0].as_array().as_ptr());
-                gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, 0 as *const _);
-            }
+            // Render the lamp cube.
+            gl::UseProgram(lamp_shader_program);
+            let model_matrix = glm::ext::translate(&identity_matrix(), glm::vec3(1.2, 1.0, 2.0));
+            let model_matrix = glm::ext::scale(&model_matrix, glm::vec3(0.2, 0.2, 0.2));
+
+            gl::UniformMatrix4fv(lamp_model_matrix_location, 1, gl::FALSE, model_matrix.as_array()[0].as_array().as_ptr());
+            gl::UniformMatrix4fv(lamp_view_matrix_location, 1, gl::FALSE, view_matrix.as_array()[0].as_array().as_ptr());
+            gl::UniformMatrix4fv(lamp_projection_matrix_location, 1, gl::FALSE, projection_matrix.as_array()[0].as_array().as_ptr());
+
+            gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, 0 as *const _);
         }
         window.swap_buffers();
 
@@ -221,6 +233,12 @@ fn main() {
         if window.get_key(glfw::Key::S) == glfw::Action::Press {
             camera.position = camera.position - camera.x_axis * camera.speed * delta_time;
         }
+        if window.get_key(glfw::Key::Space) == glfw::Action::Press {
+            camera.position = camera.position + camera.up * camera.speed * delta_time;
+        }
+        if window.get_key(glfw::Key::LeftShift) == glfw::Action::Press {
+            camera.position = camera.position - camera.up * camera.speed * delta_time;
+        }
     }
 }
 
@@ -262,7 +280,6 @@ fn create_program(shader_name: &str) -> u32 {
             panic!("Error linking shader program: {}", error);
         }
 
-        gl::UseProgram(shader_program);
         gl::DeleteShader(vertex_shader);
         gl::DeleteShader(fragment_shader);
     }
