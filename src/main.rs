@@ -7,67 +7,9 @@ use gl::types::*;
 use glfw::{ Context };
 use image::GenericImageView;
 use std::ffi::CString;
+use std::fs;
 
-
-struct Camera {
-    speed: f32,
-    sensitivity: f32,
-    up: glm::Vector3<f32>,
-
-    position: glm::Vector3<f32>,
-    pitch: f32,
-    yaw: f32,
-
-    x_axis: glm::Vector3<f32>,
-    y_axis: glm::Vector3<f32>,
-    z_axis: glm::Vector3<f32>
-}
-
-impl Camera {
-    fn new(speed: f32, sensitivity: f32, up: glm::Vector3<f32>, position: glm::Vector3<f32>) -> Camera {
-        Camera {
-            speed,
-            sensitivity,
-            up,
-
-            position,
-            pitch: 0.0,
-            yaw: 0.0,
-
-            x_axis: glm::vec3(0.0, 0.0, 0.0),
-            y_axis: glm::vec3(0.0, 0.0, 0.0),
-            z_axis: glm::vec3(0.0, 0.0, 0.0)
-        }
-    }
-
-    fn get_view_matrix(&mut self) -> glm::Matrix4<f32> {
-        self.z_axis = glm::builtin::normalize(glm::vec3(
-            -((glm::radians(self.pitch) as f32).cos() * (glm::radians(self.yaw) as f32).cos()),
-            -(glm::radians(self.pitch) as f32).sin(),
-            -((glm::radians(self.pitch) as f32).cos() * (glm::radians(self.yaw) as f32).sin())
-        ));
-
-        self.x_axis = glm::builtin::normalize(
-            glm::builtin::cross(self.up, self.z_axis)
-        );
-        self.y_axis = glm::builtin::cross(self.z_axis, self.x_axis);
-
-        let rotation_matrix = glm::mat4(
-            self.x_axis.x, self.y_axis.x, self.z_axis.x, 0.0,
-            self.x_axis.y, self.y_axis.y, self.z_axis.y, 0.0,
-            self.x_axis.z, self.y_axis.z, self.z_axis.z, 0.0,
-            0.0, 0.0, 0.0, 1.0
-        );
-        let position_matrix = glm::mat4(
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            -self.position.x, -self.position.y, -self.position.z, 1.0
-        );
-
-        rotation_matrix * position_matrix
-    }
-}
+mod camera;
 
 
 fn main() {
@@ -95,44 +37,8 @@ fn main() {
         gl::Enable(gl::DEPTH_TEST);
     }
 
-    // Compile the shaders.
-    let vertex_shader_source = CString::new(include_str!("./shader.vert")).expect("Failed to convert shader.vert to CString!");
-    let vertex_shader = create_shader(vertex_shader_source, gl::VERTEX_SHADER);
-
-    let fragment_shader_source = CString::new(include_str!("./shader.frag")).expect("Failed to convert shader.frag to CString!");
-    let fragment_shader = create_shader(fragment_shader_source, gl::FRAGMENT_SHADER);
-
     // Create a shader program.
-    let shader_program = unsafe { gl::CreateProgram() };
-    unsafe {
-        gl::AttachShader(shader_program, vertex_shader);
-        gl::AttachShader(shader_program, fragment_shader);
-        gl::LinkProgram(shader_program);
-
-        // Check for errors.
-        let mut success = 1;
-        gl::GetProgramiv(shader_program, gl::COMPILE_STATUS, &mut success);
-        if success == 0 {
-            let mut error_length = 0;
-            gl::GetProgramiv(shader_program, gl::INFO_LOG_LENGTH, &mut error_length);
-            let error_string = CString::from_vec_unchecked(
-                std::iter::repeat(b' ').take(error_length as usize).collect::<Vec<u8>>()
-            );
-            gl::GetProgramInfoLog(
-                shader_program,
-                error_length,
-                std::ptr::null_mut(),
-                error_string.as_ptr() as *mut _
-            );
-
-            let error = error_string.to_string_lossy().into_owned();
-            panic!("Error linking shader program: {}", error);
-        }
-
-        gl::UseProgram(shader_program);
-        gl::DeleteShader(vertex_shader);
-        gl::DeleteShader(fragment_shader);
-    }
+    let shader_program = create_program("shader");
 
     // Make a VAO!
     let mut vao = 0;
@@ -191,8 +97,8 @@ fn main() {
     create_vertex_attribute_array::<f32>(1, 2, 5, 3);
 
     // Set the textures!
-    let _wall_texture = create_texture("./src/wall.jpg", gl::TEXTURE0, gl::RGB);
-    let _face_texture = create_texture("./src/awesomeface.png", gl::TEXTURE1, gl::RGBA);
+    let _wall_texture = create_texture("./assets/wall.jpg", gl::TEXTURE0, gl::RGB);
+    let _face_texture = create_texture("./assets/awesomeface.png", gl::TEXTURE1, gl::RGBA);
 
     let texture1_location = get_uniform_location(shader_program, "texture1");
     let texture2_location = get_uniform_location(shader_program, "texture2");
@@ -224,7 +130,7 @@ fn main() {
     ];
 
     // Set up the basic camera.
-    let mut camera = Camera::new(5.0, 0.5, glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 5.0));
+    let mut camera = camera::Camera::new(5.0, 0.1, glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 5.0));
 
     // This is for mouse input.
     let mut first_mouse_input = true;
@@ -318,6 +224,51 @@ fn main() {
     }
 }
 
+
+fn create_program(shader_name: &str) -> u32 {
+    let vertex_shader_source = fs::read_to_string(format!("./assets/{}.vert", shader_name))
+        .expect(&format!("Failed to load {} vertex shader!", shader_name));
+    let vertex_shader_source = CString::new(vertex_shader_source).unwrap();
+    let vertex_shader = create_shader(vertex_shader_source, gl::VERTEX_SHADER);
+
+    let fragment_shader_source = fs::read_to_string(format!("./assets/{}.frag", shader_name))
+        .expect(&format!("Failed to load {} fragment shader!", shader_name));
+    let fragment_shader_source = CString::new(fragment_shader_source).unwrap();
+    let fragment_shader = create_shader(fragment_shader_source, gl::FRAGMENT_SHADER);
+
+    let shader_program = unsafe { gl::CreateProgram() };
+    unsafe {
+        gl::AttachShader(shader_program, vertex_shader);
+        gl::AttachShader(shader_program, fragment_shader);
+        gl::LinkProgram(shader_program);
+
+        // Check for errors.
+        let mut success = 1;
+        gl::GetProgramiv(shader_program, gl::COMPILE_STATUS, &mut success);
+        if success == 0 {
+            let mut error_length = 0;
+            gl::GetProgramiv(shader_program, gl::INFO_LOG_LENGTH, &mut error_length);
+            let error_string = CString::from_vec_unchecked(
+                std::iter::repeat(b' ').take(error_length as usize).collect::<Vec<u8>>()
+            );
+            gl::GetProgramInfoLog(
+                shader_program,
+                error_length,
+                std::ptr::null_mut(),
+                error_string.as_ptr() as *mut _
+            );
+
+            let error = error_string.to_string_lossy().into_owned();
+            panic!("Error linking shader program: {}", error);
+        }
+
+        gl::UseProgram(shader_program);
+        gl::DeleteShader(vertex_shader);
+        gl::DeleteShader(fragment_shader);
+    }
+
+    shader_program
+}
 
 fn create_shader(source: CString, shader_type: u32) -> u32 {
     unsafe {
