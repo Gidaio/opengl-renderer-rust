@@ -39,7 +39,6 @@ fn main() {
 
     // Create a shader program.
     let target_shader_program = create_program("target");
-    unsafe { gl::UseProgram(target_shader_program); }
 
     // Make a VAO!
     let mut target_vao = 0;
@@ -49,15 +48,60 @@ fn main() {
     }
 
     // Make a VBO for our cube mesh.
-    let cube_mesh: [f32; 24] = [
-        0.5, 0.5, 0.5,
-        -0.5, 0.5, 0.5,
-        -0.5, -0.5, 0.5,
-        0.5, -0.5, 0.5,
-        0.5, 0.5, -0.5,
-        -0.5, 0.5, -0.5,
-        -0.5, -0.5, -0.5,
-        0.5, -0.5, -0.5
+    let cube_mesh: [f32; 216] = [
+        // Front face
+         0.5,  0.5,  0.5,   0.0,  0.0,  1.0,
+        -0.5,  0.5,  0.5,   0.0,  0.0,  1.0,
+        -0.5, -0.5,  0.5,   0.0,  0.0,  1.0,
+
+        -0.5, -0.5,  0.5,   0.0,  0.0,  1.0,
+         0.5, -0.5,  0.5,   0.0,  0.0,  1.0,
+         0.5,  0.5,  0.5,   0.0,  0.0,  1.0,
+
+        // Top face
+         0.5,  0.5, -0.5,   0.0,  1.0,  0.0,
+        -0.5,  0.5, -0.5,   0.0,  1.0,  0.0,
+        -0.5,  0.5,  0.5,   0.0,  1.0,  0.0,
+
+        -0.5,  0.5,  0.5,   0.0,  1.0,  0.0,
+         0.5,  0.5,  0.5,   0.0,  1.0,  0.0,
+         0.5,  0.5, -0.5,   0.0,  1.0,  0.0,
+
+        // Left face
+        -0.5,  0.5,  0.5,  -1.0,  0.0,  0.0,
+        -0.5,  0.5, -0.5,  -1.0,  0.0,  0.0,
+        -0.5, -0.5, -0.5,  -1.0,  0.0,  0.0,
+
+        -0.5, -0.5, -0.5,  -1.0,  0.0,  0.0,
+        -0.5, -0.5,  0.5,  -1.0,  0.0,  0.0,
+        -0.5,  0.5,  0.5,  -1.0,  0.0,  0.0,
+
+        // Back face
+        -0.5,  0.5, -0.5,   0.0,  0.0, -1.0,
+         0.5,  0.5, -0.5,   0.0,  0.0, -1.0,
+         0.5, -0.5, -0.5,   0.0,  0.0, -1.0,
+
+         0.5, -0.5, -0.5,   0.0,  0.0, -1.0,
+        -0.5, -0.5, -0.5,   0.0,  0.0, -1.0,
+        -0.5,  0.5, -0.5,   0.0,  0.0, -1.0,
+
+        // Right face
+         0.5,  0.5, -0.5,   1.0,  0.0,  0.0,
+         0.5,  0.5,  0.5,   1.0,  0.0,  0.0,
+         0.5, -0.5,  0.5,   1.0,  0.0,  0.0,
+
+         0.5, -0.5,  0.5,   1.0,  0.0,  0.0,
+         0.5, -0.5, -0.5,   1.0,  0.0,  0.0,
+         0.5,  0.5, -0.5,   1.0,  0.0,  0.0,
+
+        // Bottom face
+         0.5, -0.5,  0.5,   0.0, -1.0,  0.0,
+        -0.5, -0.5,  0.5,   0.0, -1.0,  0.0,
+        -0.5, -0.5, -0.5,   0.0, -1.0,  0.0,
+
+        -0.5, -0.5, -0.5,   0.0, -1.0,  0.0,
+         0.5, -0.5, -0.5,   0.0, -1.0,  0.0,
+         0.5, -0.5,  0.5,   0.0, -1.0,  0.0
     ];
 
     let mut cube_vbo = 0;
@@ -72,29 +116,9 @@ fn main() {
         );
     }
 
-    let cube_triangles: [i32; 36] = [
-        0, 1, 2,  2, 3, 0,
-        4, 5, 1,  1, 0, 4,
-        1, 5, 6,  6, 2, 1,
-        5, 4, 7,  7, 6, 5,
-        4, 0, 3,  3, 7, 4,
-        3, 2, 6,  6, 7, 3,
-    ];
-
-    let mut cube_ebo = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut cube_ebo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, cube_ebo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            std::mem::size_of_val(&cube_triangles) as isize,
-            cube_triangles.as_ptr() as *const _,
-            gl::STATIC_DRAW
-        );
-    }
-
     // Make the vertex attribute pointers.
-    create_vertex_attribute_array::<f32>(0, 3, 3, 0);
+    create_vertex_attribute_array::<f32>(0, 3, 6, 0);
+    create_vertex_attribute_array::<f32>(1, 3, 6, 3);
 
     // Get our matrix locations.
     let target_model_matrix_location = get_uniform_location(target_shader_program, "model");
@@ -103,10 +127,10 @@ fn main() {
 
     let target_object_color_location = get_uniform_location(target_shader_program, "objectColor");
     let target_light_color_location = get_uniform_location(target_shader_program, "lightColor");
+    let target_light_position_location = get_uniform_location(target_shader_program, "lightPosition");
 
     // Make a new shader for our lamp.
     let lamp_shader_program = create_program("lamp");
-    unsafe { gl::UseProgram(lamp_shader_program); }
 
     // Make a new VAO for the lamp.
     let mut lamp_vao = 0;
@@ -115,14 +139,13 @@ fn main() {
         gl::BindVertexArray(lamp_vao);
     }
 
-    // Reuse the same mesh (VBO and EBO) for the lamp.
+    // Reuse the same mesh (VBO) for the lamp.
     unsafe {
         gl::BindBuffer(gl::ARRAY_BUFFER, cube_vbo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, cube_ebo);
     }
 
-    // Make a new attribute array for it (currently, it'll be the same).
-    create_vertex_attribute_array::<f32>(0, 3, 3, 0);
+    // Make a new attribute array for it. We leave out the normals, because they're not important.
+    create_vertex_attribute_array::<f32>(0, 3, 6, 0);
 
     // Get our matrix locations.
     let lamp_model_matrix_location = get_uniform_location(lamp_shader_program, "model");
@@ -150,6 +173,8 @@ fn main() {
 
         let view_matrix = camera.get_view_matrix();
 
+        let light_position = glm::vec3(1.2, 1.0, 2.0);
+
         // Do rendering stuff.
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -161,19 +186,22 @@ fn main() {
             gl::UniformMatrix4fv(target_projection_matrix_location, 1, gl::FALSE, projection_matrix.as_array()[0].as_array().as_ptr());
             gl::Uniform3f(target_object_color_location, 1.0, 0.5, 0.31);
             gl::Uniform3f(target_light_color_location, 1.0, 1.0, 1.0);
+            gl::Uniform3fv(target_light_position_location, 1, light_position.as_array().as_ptr());
 
-            gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, 0 as *const _);
+            gl::BindVertexArray(target_vao);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
 
             // Render the lamp cube.
             gl::UseProgram(lamp_shader_program);
-            let model_matrix = glm::ext::translate(&identity_matrix(), glm::vec3(1.2, 1.0, 2.0));
+            let model_matrix = glm::ext::translate(&identity_matrix(), light_position);
             let model_matrix = glm::ext::scale(&model_matrix, glm::vec3(0.2, 0.2, 0.2));
 
             gl::UniformMatrix4fv(lamp_model_matrix_location, 1, gl::FALSE, model_matrix.as_array()[0].as_array().as_ptr());
             gl::UniformMatrix4fv(lamp_view_matrix_location, 1, gl::FALSE, view_matrix.as_array()[0].as_array().as_ptr());
             gl::UniformMatrix4fv(lamp_projection_matrix_location, 1, gl::FALSE, projection_matrix.as_array()[0].as_array().as_ptr());
 
-            gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, 0 as *const _);
+            gl::BindVertexArray(lamp_vao);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
         window.swap_buffers();
 
@@ -342,6 +370,7 @@ fn create_vertex_attribute_array<T: HasOpenGLType>(index: u32, size: i32, stride
     }
 }
 
+#[allow(dead_code)]
 fn create_texture(path: &'static str, texture_spot: u32, pixel_type: u32) -> u32 {
     // Load up the image.
     let image_obj = image::open(path).unwrap();
