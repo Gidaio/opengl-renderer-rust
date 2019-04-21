@@ -33,7 +33,7 @@ fn main() {
     gl::load_with(|s| window.get_proc_address(s));
     unsafe {
         gl::Viewport(0, 0, window_width as i32, window_height as i32);
-        gl::ClearColor(0.2, 0.3, 0.3, 1.0);
+        gl::ClearColor(0.1, 0.1, 0.1, 1.0);
         gl::Enable(gl::DEPTH_TEST);
     }
 
@@ -128,6 +128,7 @@ fn main() {
     let target_object_color_location = get_uniform_location(target_shader_program, "objectColor");
     let target_light_color_location = get_uniform_location(target_shader_program, "lightColor");
     let target_light_position_location = get_uniform_location(target_shader_program, "lightPosition");
+    let target_viewer_position_location = get_uniform_location(target_shader_program, "viewerPosition");
 
     // Make a new shader for our lamp.
     let lamp_shader_program = create_program("lamp");
@@ -173,7 +174,10 @@ fn main() {
 
         let view_matrix = camera.get_view_matrix();
 
-        let light_position = glm::vec3(1.2, 1.0, 2.0);
+        let light_x = current_time.cos() * 1.2;
+        let light_y = 1.0;
+        let light_z = current_time.sin() * 2.0;
+        let light_position = glm::vec3(light_x, light_y, light_z);
 
         // Do rendering stuff.
         unsafe {
@@ -187,6 +191,7 @@ fn main() {
             gl::Uniform3f(target_object_color_location, 1.0, 0.5, 0.31);
             gl::Uniform3f(target_light_color_location, 1.0, 1.0, 1.0);
             gl::Uniform3fv(target_light_position_location, 1, light_position.as_array().as_ptr());
+            gl::Uniform3fv(target_viewer_position_location, 1, camera.position.as_array().as_ptr());
 
             gl::BindVertexArray(target_vao);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
