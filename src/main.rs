@@ -6,10 +6,9 @@ extern crate image;
 use gl::types::*;
 use glfw::{ Context };
 use image::GenericImageView;
-use std::ffi::CString;
-use std::fs;
 
 mod camera;
+mod program;
 
 
 fn main() {
@@ -22,7 +21,7 @@ fn main() {
     glfw_obj.window_hint(glfw::WindowHint::ContextVersionMajor(3));
     glfw_obj.window_hint(glfw::WindowHint::ContextVersionMinor(3));
     glfw_obj.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
-    let (mut window, events) = glfw_obj.create_window(window_width, window_height, "LearnOpenGL", glfw::WindowMode::Windowed).expect("Failed to create a window.");
+    let (mut window, events) = glfw_obj.create_window(window_width, window_height, "Learn OpenGL", glfw::WindowMode::Windowed).expect("Failed to create a window.");
     window.make_current();
     window.set_key_polling(true);
     window.set_cursor_pos_polling(true);
@@ -38,7 +37,7 @@ fn main() {
     }
 
     // Create a shader program.
-    let target_shader_program = create_program("target");
+    let target_shader_program = program::Program::new("target");
 
     // Make a VAO!
     let mut target_vao = 0;
@@ -120,18 +119,8 @@ fn main() {
     create_vertex_attribute_array::<f32>(0, 3, 6, 0);
     create_vertex_attribute_array::<f32>(1, 3, 6, 3);
 
-    // Get our matrix locations.
-    let target_model_matrix_location = get_uniform_location(target_shader_program, "model");
-    let target_view_matrix_location = get_uniform_location(target_shader_program, "view");
-    let target_projection_matrix_location = get_uniform_location(target_shader_program, "projection");
-
-    let target_object_color_location = get_uniform_location(target_shader_program, "objectColor");
-    let target_light_color_location = get_uniform_location(target_shader_program, "lightColor");
-    let target_light_position_location = get_uniform_location(target_shader_program, "lightPosition");
-    let target_viewer_position_location = get_uniform_location(target_shader_program, "viewerPosition");
-
     // Make a new shader for our lamp.
-    let lamp_shader_program = create_program("lamp");
+    let lamp_shader_program = program::Program::new("lamp");
 
     // Make a new VAO for the lamp.
     let mut lamp_vao = 0;
@@ -147,11 +136,6 @@ fn main() {
 
     // Make a new attribute array for it. We leave out the normals, because they're not important.
     create_vertex_attribute_array::<f32>(0, 3, 6, 0);
-
-    // Get our matrix locations.
-    let lamp_model_matrix_location = get_uniform_location(lamp_shader_program, "model");
-    let lamp_view_matrix_location = get_uniform_location(lamp_shader_program, "view");
-    let lamp_projection_matrix_location = get_uniform_location(lamp_shader_program, "projection");
 
     // Set up the projection matrix (this doesn't change).
     let projection_matrix = glm::ext::perspective(glm::radians(45.0), window_width as f32 / window_height as f32, 0.1, 100.0);
@@ -184,26 +168,26 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             // Render the target cube.
-            gl::UseProgram(target_shader_program);
-            gl::UniformMatrix4fv(target_model_matrix_location, 1, gl::FALSE, identity_matrix().as_array()[0].as_array().as_ptr());
-            gl::UniformMatrix4fv(target_view_matrix_location, 1, gl::FALSE, view_matrix.as_array()[0].as_array().as_ptr());
-            gl::UniformMatrix4fv(target_projection_matrix_location, 1, gl::FALSE, projection_matrix.as_array()[0].as_array().as_ptr());
-            gl::Uniform3f(target_object_color_location, 1.0, 0.5, 0.31);
-            gl::Uniform3f(target_light_color_location, 1.0, 1.0, 1.0);
-            gl::Uniform3fv(target_light_position_location, 1, light_position.as_array().as_ptr());
-            gl::Uniform3fv(target_viewer_position_location, 1, camera.position.as_array().as_ptr());
+            target_shader_program.set_used();
+            target_shader_program.set_matrix("model", identity_matrix());
+            target_shader_program.set_matrix("view", view_matrix);
+            target_shader_program.set_matrix("projection", projection_matrix);
+            target_shader_program.set_vector3("objectColor", glm::vec3(1.0, 0.5, 0.31));
+            target_shader_program.set_vector3("lightColor", glm::vec3(1.0, 1.0, 1.0));
+            target_shader_program.set_vector3("lightPosition", light_position);
+            target_shader_program.set_vector3("viewerPosition", camera.position);
 
             gl::BindVertexArray(target_vao);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
 
             // Render the lamp cube.
-            gl::UseProgram(lamp_shader_program);
+            lamp_shader_program.set_used();
             let model_matrix = glm::ext::translate(&identity_matrix(), light_position);
             let model_matrix = glm::ext::scale(&model_matrix, glm::vec3(0.2, 0.2, 0.2));
 
-            gl::UniformMatrix4fv(lamp_model_matrix_location, 1, gl::FALSE, model_matrix.as_array()[0].as_array().as_ptr());
-            gl::UniformMatrix4fv(lamp_view_matrix_location, 1, gl::FALSE, view_matrix.as_array()[0].as_array().as_ptr());
-            gl::UniformMatrix4fv(lamp_projection_matrix_location, 1, gl::FALSE, projection_matrix.as_array()[0].as_array().as_ptr());
+            lamp_shader_program.set_matrix("model", model_matrix);
+            lamp_shader_program.set_matrix("view", view_matrix);
+            lamp_shader_program.set_matrix("projection", projection_matrix);
 
             gl::BindVertexArray(lamp_vao);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
@@ -276,81 +260,6 @@ fn main() {
 }
 
 
-fn create_program(shader_name: &str) -> u32 {
-    let vertex_shader_source = fs::read_to_string(format!("./assets/{}.vert", shader_name))
-        .expect(&format!("Failed to load {} vertex shader!", shader_name));
-    let vertex_shader_source = CString::new(vertex_shader_source).unwrap();
-    let vertex_shader = create_shader(vertex_shader_source, gl::VERTEX_SHADER);
-
-    let fragment_shader_source = fs::read_to_string(format!("./assets/{}.frag", shader_name))
-        .expect(&format!("Failed to load {} fragment shader!", shader_name));
-    let fragment_shader_source = CString::new(fragment_shader_source).unwrap();
-    let fragment_shader = create_shader(fragment_shader_source, gl::FRAGMENT_SHADER);
-
-    let shader_program = unsafe { gl::CreateProgram() };
-    unsafe {
-        gl::AttachShader(shader_program, vertex_shader);
-        gl::AttachShader(shader_program, fragment_shader);
-        gl::LinkProgram(shader_program);
-
-        // Check for errors.
-        let mut success = 1;
-        gl::GetProgramiv(shader_program, gl::COMPILE_STATUS, &mut success);
-        if success == 0 {
-            let mut error_length = 0;
-            gl::GetProgramiv(shader_program, gl::INFO_LOG_LENGTH, &mut error_length);
-            let error_string = CString::from_vec_unchecked(
-                std::iter::repeat(b' ').take(error_length as usize).collect::<Vec<u8>>()
-            );
-            gl::GetProgramInfoLog(
-                shader_program,
-                error_length,
-                std::ptr::null_mut(),
-                error_string.as_ptr() as *mut _
-            );
-
-            let error = error_string.to_string_lossy().into_owned();
-            panic!("Error linking shader program: {}", error);
-        }
-
-        gl::DeleteShader(vertex_shader);
-        gl::DeleteShader(fragment_shader);
-    }
-
-    shader_program
-}
-
-fn create_shader(source: CString, shader_type: u32) -> u32 {
-    unsafe {
-        let shader_id = gl::CreateShader(shader_type);
-        gl::ShaderSource(shader_id, 1, &source.as_ptr(), std::ptr::null());
-        gl::CompileShader(shader_id);
-
-        // Check for errors.
-        let mut success = 1;
-        gl::GetShaderiv(shader_id, gl::COMPILE_STATUS, &mut success);
-        if success == 0 {
-            let mut error_length = 0;
-            gl::GetShaderiv(shader_id, gl::INFO_LOG_LENGTH, &mut error_length);
-            let error_string = CString::from_vec_unchecked(
-                std::iter::repeat(b' ').take(error_length as usize).collect::<Vec<u8>>()
-            );
-            gl::GetShaderInfoLog(
-                shader_id,
-                error_length,
-                std::ptr::null_mut(),
-                error_string.as_ptr() as *mut _
-            );
-
-            let error = error_string.to_string_lossy().into_owned();
-            panic!("Error compiling shader: {}", error);
-        }
-
-        return shader_id;
-    }
-}
-
-
 trait HasOpenGLType {
     fn get_opengl_type() -> GLenum;
 }
@@ -409,11 +318,6 @@ fn create_texture(path: &'static str, texture_spot: u32, pixel_type: u32) -> u32
     }
 
     return texture;
-}
-
-fn get_uniform_location(shader_program: u32, uniform_name: &'static str) -> i32 {
-    let uniform_cstring = CString::new(uniform_name).unwrap();
-    unsafe { gl::GetUniformLocation(shader_program, uniform_cstring.as_ptr()) }
 }
 
 fn identity_matrix() -> glm::Matrix4<f32> {
