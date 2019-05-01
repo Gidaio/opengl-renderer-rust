@@ -172,9 +172,16 @@ fn main() {
             target_shader_program.set_matrix("model", identity_matrix());
             target_shader_program.set_matrix("view", view_matrix);
             target_shader_program.set_matrix("projection", projection_matrix);
-            target_shader_program.set_vector3("objectColor", glm::vec3(1.0, 0.5, 0.31));
-            target_shader_program.set_vector3("lightColor", glm::vec3(1.0, 1.0, 1.0));
-            target_shader_program.set_vector3("lightPosition", light_position);
+
+            target_shader_program.set_vector3("material.ambientColor", glm::vec3(1.0, 0.5, 0.31));
+            target_shader_program.set_vector3("material.diffuseColor", glm::vec3(1.0, 0.5, 0.31));
+            target_shader_program.set_vector3("material.specularColor", glm::vec3(0.5, 0.5, 0.5));
+            target_shader_program.set_float("material.shininess", 32.0);
+
+            target_shader_program.set_vector3("light.position", light_position);
+            target_shader_program.set_vector3("light.ambientColor", glm::vec3(0.2, 0.2, 0.2));
+            target_shader_program.set_vector3("light.diffuseColor", glm::vec3(0.5, 0.5, 0.5));
+            target_shader_program.set_vector3("light.specularColor", glm::vec3(1.0, 1.0, 1.0));
             target_shader_program.set_vector3("viewerPosition", camera.position);
 
             gl::BindVertexArray(target_vao);

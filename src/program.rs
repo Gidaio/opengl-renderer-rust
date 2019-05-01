@@ -57,15 +57,22 @@ impl Program {
     }
   }
 
+  pub fn set_float(&self, uniform_name: &'static str, float: f32) {
+    let uniform_location = self.get_uniform_location(uniform_name);
+    unsafe {
+      gl::Uniform1f(uniform_location, float);
+    }
+  }
+
   pub fn set_vector3(&self, uniform_name: &'static str, vector: glm::Vector3<f32>) {
-    let uniform_location = Program::get_uniform_location(self, uniform_name);
+    let uniform_location = self.get_uniform_location(uniform_name);
     unsafe {
       gl::Uniform3fv(uniform_location, 1, vector.as_array().as_ptr());
     }
   }
 
   pub fn set_matrix(&self, uniform_name: &'static str, matrix: glm::Matrix4<f32>) {
-    let uniform_location = Program::get_uniform_location(self, uniform_name);
+    let uniform_location = self.get_uniform_location(uniform_name);
     unsafe {
       gl::UniformMatrix4fv(uniform_location, 1, gl::FALSE, matrix.as_array()[0].as_array().as_ptr());
     }
