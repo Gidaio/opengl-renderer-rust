@@ -57,6 +57,13 @@ impl Program {
     }
   }
 
+  pub fn set_signed_int(&self, uniform_name: &'static str, int: i32) {
+    let uniform_location = self.get_uniform_location(uniform_name);
+    unsafe {
+      gl::Uniform1i(uniform_location, int);
+    }
+  }
+
   pub fn set_float(&self, uniform_name: &'static str, float: f32) {
     let uniform_location = self.get_uniform_location(uniform_name);
     unsafe {

@@ -47,60 +47,60 @@ fn main() {
     }
 
     // Make a VBO for our cube mesh.
-    let cube_mesh: [f32; 216] = [
+    let cube_mesh: [f32; 288] = [
         // Front face
-         0.5,  0.5,  0.5,   0.0,  0.0,  1.0,
-        -0.5,  0.5,  0.5,   0.0,  0.0,  1.0,
-        -0.5, -0.5,  0.5,   0.0,  0.0,  1.0,
+         0.5,  0.5,  0.5,   0.0,  0.0,  1.0,  1.0, 1.0,
+        -0.5,  0.5,  0.5,   0.0,  0.0,  1.0,  0.0, 1.0,
+        -0.5, -0.5,  0.5,   0.0,  0.0,  1.0,  0.0, 0.0,
 
-        -0.5, -0.5,  0.5,   0.0,  0.0,  1.0,
-         0.5, -0.5,  0.5,   0.0,  0.0,  1.0,
-         0.5,  0.5,  0.5,   0.0,  0.0,  1.0,
+        -0.5, -0.5,  0.5,   0.0,  0.0,  1.0,  0.0, 0.0,
+         0.5, -0.5,  0.5,   0.0,  0.0,  1.0,  1.0, 0.0,
+         0.5,  0.5,  0.5,   0.0,  0.0,  1.0,  1.0, 1.0,
 
         // Top face
-         0.5,  0.5, -0.5,   0.0,  1.0,  0.0,
-        -0.5,  0.5, -0.5,   0.0,  1.0,  0.0,
-        -0.5,  0.5,  0.5,   0.0,  1.0,  0.0,
+         0.5,  0.5, -0.5,   0.0,  1.0,  0.0,  1.0, 0.0,
+        -0.5,  0.5, -0.5,   0.0,  1.0,  0.0,  0.0, 0.0,
+        -0.5,  0.5,  0.5,   0.0,  1.0,  0.0,  0.0, 1.0,
 
-        -0.5,  0.5,  0.5,   0.0,  1.0,  0.0,
-         0.5,  0.5,  0.5,   0.0,  1.0,  0.0,
-         0.5,  0.5, -0.5,   0.0,  1.0,  0.0,
+        -0.5,  0.5,  0.5,   0.0,  1.0,  0.0,  0.0, 1.0,
+         0.5,  0.5,  0.5,   0.0,  1.0,  0.0,  1.0, 1.0,
+         0.5,  0.5, -0.5,   0.0,  1.0,  0.0,  1.0, 0.0,
 
         // Left face
-        -0.5,  0.5,  0.5,  -1.0,  0.0,  0.0,
-        -0.5,  0.5, -0.5,  -1.0,  0.0,  0.0,
-        -0.5, -0.5, -0.5,  -1.0,  0.0,  0.0,
+        -0.5,  0.5,  0.5,  -1.0,  0.0,  0.0,  1.0, 1.0,
+        -0.5,  0.5, -0.5,  -1.0,  0.0,  0.0,  1.0, 0.0,
+        -0.5, -0.5, -0.5,  -1.0,  0.0,  0.0,  0.0, 0.0,
 
-        -0.5, -0.5, -0.5,  -1.0,  0.0,  0.0,
-        -0.5, -0.5,  0.5,  -1.0,  0.0,  0.0,
-        -0.5,  0.5,  0.5,  -1.0,  0.0,  0.0,
+        -0.5, -0.5, -0.5,  -1.0,  0.0,  0.0,  0.0, 0.0,
+        -0.5, -0.5,  0.5,  -1.0,  0.0,  0.0,  0.0, 1.0,
+        -0.5,  0.5,  0.5,  -1.0,  0.0,  0.0,  1.0, 1.0,
 
         // Back face
-        -0.5,  0.5, -0.5,   0.0,  0.0, -1.0,
-         0.5,  0.5, -0.5,   0.0,  0.0, -1.0,
-         0.5, -0.5, -0.5,   0.0,  0.0, -1.0,
+        -0.5,  0.5, -0.5,   0.0,  0.0, -1.0,  0.0, 1.0,
+         0.5,  0.5, -0.5,   0.0,  0.0, -1.0,  1.0, 1.0,
+         0.5, -0.5, -0.5,   0.0,  0.0, -1.0,  1.0, 0.0,
 
-         0.5, -0.5, -0.5,   0.0,  0.0, -1.0,
-        -0.5, -0.5, -0.5,   0.0,  0.0, -1.0,
-        -0.5,  0.5, -0.5,   0.0,  0.0, -1.0,
+         0.5, -0.5, -0.5,   0.0,  0.0, -1.0,  1.0, 0.0,
+        -0.5, -0.5, -0.5,   0.0,  0.0, -1.0,  0.0, 0.0,
+        -0.5,  0.5, -0.5,   0.0,  0.0, -1.0,  0.0, 1.0,
 
         // Right face
-         0.5,  0.5, -0.5,   1.0,  0.0,  0.0,
-         0.5,  0.5,  0.5,   1.0,  0.0,  0.0,
-         0.5, -0.5,  0.5,   1.0,  0.0,  0.0,
+         0.5,  0.5, -0.5,   1.0,  0.0,  0.0,  1.0, 0.0,
+         0.5,  0.5,  0.5,   1.0,  0.0,  0.0,  1.0, 1.0,
+         0.5, -0.5,  0.5,   1.0,  0.0,  0.0,  0.0, 1.0,
 
-         0.5, -0.5,  0.5,   1.0,  0.0,  0.0,
-         0.5, -0.5, -0.5,   1.0,  0.0,  0.0,
-         0.5,  0.5, -0.5,   1.0,  0.0,  0.0,
+         0.5, -0.5,  0.5,   1.0,  0.0,  0.0,  0.0, 1.0,
+         0.5, -0.5, -0.5,   1.0,  0.0,  0.0,  0.0, 0.0,
+         0.5,  0.5, -0.5,   1.0,  0.0,  0.0,  1.0, 0.0,
 
         // Bottom face
-         0.5, -0.5,  0.5,   0.0, -1.0,  0.0,
-        -0.5, -0.5,  0.5,   0.0, -1.0,  0.0,
-        -0.5, -0.5, -0.5,   0.0, -1.0,  0.0,
+         0.5, -0.5,  0.5,   0.0, -1.0,  0.0,  1.0, 1.0,
+        -0.5, -0.5,  0.5,   0.0, -1.0,  0.0,  0.0, 1.0,
+        -0.5, -0.5, -0.5,   0.0, -1.0,  0.0,  0.0, 0.0,
 
-        -0.5, -0.5, -0.5,   0.0, -1.0,  0.0,
-         0.5, -0.5, -0.5,   0.0, -1.0,  0.0,
-         0.5, -0.5,  0.5,   0.0, -1.0,  0.0
+        -0.5, -0.5, -0.5,   0.0, -1.0,  0.0,  0.0, 0.0,
+         0.5, -0.5, -0.5,   0.0, -1.0,  0.0,  1.0, 0.0,
+         0.5, -0.5,  0.5,   0.0, -1.0,  0.0,  1.0, 1.0
     ];
 
     let mut cube_vbo = 0;
@@ -116,8 +116,29 @@ fn main() {
     }
 
     // Make the vertex attribute pointers.
-    create_vertex_attribute_array::<f32>(0, 3, 6, 0);
-    create_vertex_attribute_array::<f32>(1, 3, 6, 3);
+    create_vertex_attribute_array::<f32>(0, 3, 8, 0);
+    create_vertex_attribute_array::<f32>(1, 3, 8, 3);
+    create_vertex_attribute_array::<f32>(2, 2, 8, 6);
+
+    // Get the texture.
+    let _container_diffuse = create_texture("./assets/container.diffuse.png", gl::TEXTURE0, gl::RGBA);
+    let _container_specular = create_texture("./assets/container.specular.png", gl::TEXTURE1, gl::RGBA);
+
+    // Set the unchanging uniforms.
+    target_shader_program.set_used();
+    target_shader_program.set_signed_int("material.diffuseColor", 0);
+    target_shader_program.set_signed_int("material.specularColor", 1);
+
+    // target_shader_program.set_vector3("material.ambientColor", glm::vec3(1.0, 0.5, 0.31));
+    // target_shader_program.set_vector3("material.diffuseColor", glm::vec3(1.0, 0.5, 0.31));
+    // target_shader_program.set_vector3("material.specularColor", glm::vec3(0.5, 0.5, 0.5));
+    target_shader_program.set_float("material.shininess", 32.0);
+
+    target_shader_program.set_vector3("light.ambientColor", glm::vec3(0.2, 0.2, 0.2));
+    target_shader_program.set_vector3("light.diffuseColor", glm::vec3(0.5, 0.5, 0.5));
+    target_shader_program.set_vector3("light.specularColor", glm::vec3(1.0, 1.0, 1.0));
+
+    target_shader_program.set_matrix("model", identity_matrix());
 
     // Make a new shader for our lamp.
     let lamp_shader_program = program::Program::new("lamp");
@@ -134,8 +155,9 @@ fn main() {
         gl::BindBuffer(gl::ARRAY_BUFFER, cube_vbo);
     }
 
-    // Make a new attribute array for it. We leave out the normals, because they're not important.
-    create_vertex_attribute_array::<f32>(0, 3, 6, 0);
+    // Make a new attribute array for it. We leave out the normals and texture coordinates,
+    // because they're not important.
+    create_vertex_attribute_array::<f32>(0, 3, 8, 0);
 
     // Set up the projection matrix (this doesn't change).
     let projection_matrix = glm::ext::perspective(glm::radians(45.0), window_width as f32 / window_height as f32, 0.1, 100.0);
@@ -169,20 +191,12 @@ fn main() {
 
             // Render the target cube.
             target_shader_program.set_used();
-            target_shader_program.set_matrix("model", identity_matrix());
-            target_shader_program.set_matrix("view", view_matrix);
-            target_shader_program.set_matrix("projection", projection_matrix);
-
-            target_shader_program.set_vector3("material.ambientColor", glm::vec3(1.0, 0.5, 0.31));
-            target_shader_program.set_vector3("material.diffuseColor", glm::vec3(1.0, 0.5, 0.31));
-            target_shader_program.set_vector3("material.specularColor", glm::vec3(0.5, 0.5, 0.5));
-            target_shader_program.set_float("material.shininess", 32.0);
 
             target_shader_program.set_vector3("light.position", light_position);
-            target_shader_program.set_vector3("light.ambientColor", glm::vec3(0.2, 0.2, 0.2));
-            target_shader_program.set_vector3("light.diffuseColor", glm::vec3(0.5, 0.5, 0.5));
-            target_shader_program.set_vector3("light.specularColor", glm::vec3(1.0, 1.0, 1.0));
             target_shader_program.set_vector3("viewerPosition", camera.position);
+
+            target_shader_program.set_matrix("view", view_matrix);
+            target_shader_program.set_matrix("projection", projection_matrix);
 
             gl::BindVertexArray(target_vao);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
@@ -291,7 +305,6 @@ fn create_vertex_attribute_array<T: HasOpenGLType>(index: u32, size: i32, stride
     }
 }
 
-#[allow(dead_code)]
 fn create_texture(path: &'static str, texture_spot: u32, pixel_type: u32) -> u32 {
     // Load up the image.
     let image_obj = image::open(path).unwrap();
