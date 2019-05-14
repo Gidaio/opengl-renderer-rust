@@ -131,7 +131,8 @@ fn main() {
 
     target_shader_program.set_float("material.shininess", 32.0);
 
-    target_shader_program.set_vector3("light.position", glm::vec3(0.0, 0.0, 1.0));
+    target_shader_program.set_float("light.innerCutoff", (glm::radians(12.5) as f32).cos());
+    target_shader_program.set_float("light.outerCutoff", (glm::radians(17.0) as f32).cos());
     target_shader_program.set_vector3("light.ambientColor", glm::vec3(0.2, 0.2, 0.2));
     target_shader_program.set_vector3("light.diffuseColor", glm::vec3(0.5, 0.5, 0.5));
     target_shader_program.set_vector3("light.specularColor", glm::vec3(1.0, 1.0, 1.0));
@@ -200,6 +201,8 @@ fn main() {
             target_shader_program.set_used();
 
             target_shader_program.set_vector3("viewerPosition", camera.position);
+            target_shader_program.set_vector3("light.position", camera.position);
+            target_shader_program.set_vector3("light.direction", -camera.z_axis);
 
             target_shader_program.set_matrix("view", view_matrix);
             target_shader_program.set_matrix("projection", projection_matrix);
@@ -215,16 +218,16 @@ fn main() {
             }
 
             // Render the lamp cube.
-            lamp_shader_program.set_used();
-            let model_matrix = glm::ext::translate(&identity_matrix(), glm::vec3(0.0, 0.0, 1.0));
-            let model_matrix = glm::ext::scale(&model_matrix, glm::vec3(0.2, 0.2, 0.2));
+            // lamp_shader_program.set_used();
+            // let model_matrix = glm::ext::translate(&identity_matrix(), glm::vec3(0.0, 0.0, 1.0));
+            // let model_matrix = glm::ext::scale(&model_matrix, glm::vec3(0.2, 0.2, 0.2));
 
-            lamp_shader_program.set_matrix("model", model_matrix);
-            lamp_shader_program.set_matrix("view", view_matrix);
-            lamp_shader_program.set_matrix("projection", projection_matrix);
+            // lamp_shader_program.set_matrix("model", model_matrix);
+            // lamp_shader_program.set_matrix("view", view_matrix);
+            // lamp_shader_program.set_matrix("projection", projection_matrix);
 
-            gl::BindVertexArray(lamp_vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            // gl::BindVertexArray(lamp_vao);
+            // gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
         window.swap_buffers();
 
