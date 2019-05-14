@@ -129,16 +129,11 @@ fn main() {
     target_shader_program.set_signed_int("material.diffuseColor", 0);
     target_shader_program.set_signed_int("material.specularColor", 1);
 
-    // target_shader_program.set_vector3("material.ambientColor", glm::vec3(1.0, 0.5, 0.31));
-    // target_shader_program.set_vector3("material.diffuseColor", glm::vec3(1.0, 0.5, 0.31));
-    // target_shader_program.set_vector3("material.specularColor", glm::vec3(0.5, 0.5, 0.5));
     target_shader_program.set_float("material.shininess", 32.0);
 
     target_shader_program.set_vector3("light.ambientColor", glm::vec3(0.2, 0.2, 0.2));
     target_shader_program.set_vector3("light.diffuseColor", glm::vec3(0.5, 0.5, 0.5));
     target_shader_program.set_vector3("light.specularColor", glm::vec3(1.0, 1.0, 1.0));
-
-    target_shader_program.set_matrix("model", identity_matrix());
 
     // Make a new shader for our lamp.
     let lamp_shader_program = program::Program::new("lamp");
@@ -171,6 +166,19 @@ fn main() {
     let mut previous_cursor_y = -1.0;
     let mut previous_time = glfw_obj.get_time() as f32;
 
+    let cube_positions: [glm::Vector3<f32>; 10] = [
+        glm::vec3( 0.0,  0.0,  0.0),
+        glm::vec3( 2.0,  5.0, -15.0),
+        glm::vec3(-1.5, -2.2, -2.5),
+        glm::vec3(-3.8, -2.0, -12.3),
+        glm::vec3( 2.4, -0.4, -3.5),
+        glm::vec3(-1.7,  3.0, -7.5),
+        glm::vec3( 1.3, -2.0, -2.5),
+        glm::vec3( 1.5,  2.0, -2.5),
+        glm::vec3( 1.5,  0.2, -1.5),
+        glm::vec3(-1.3,  1.0, -1.5)
+    ];
+
     // Main loop!
     while !window.should_close() {
         // Get our timer going.
@@ -180,11 +188,6 @@ fn main() {
 
         let view_matrix = camera.get_view_matrix();
 
-        let light_x = current_time.cos() * 1.2;
-        let light_y = 1.0;
-        let light_z = current_time.sin() * 2.0;
-        let light_position = glm::vec3(light_x, light_y, light_z);
-
         // Do rendering stuff.
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -192,26 +195,33 @@ fn main() {
             // Render the target cube.
             target_shader_program.set_used();
 
-            target_shader_program.set_vector3("light.position", light_position);
+            target_shader_program.set_vector3("light.direction", glm::vec3(-0.2, -1.0, -0.3));
             target_shader_program.set_vector3("viewerPosition", camera.position);
 
             target_shader_program.set_matrix("view", view_matrix);
             target_shader_program.set_matrix("projection", projection_matrix);
 
             gl::BindVertexArray(target_vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+
+            for i in 0..10 {
+                let mut model_matrix = glm::ext::translate(&identity_matrix(), cube_positions[i]);
+                let angle = 20.0 * i as f32;
+                model_matrix = glm::ext::rotate(&model_matrix, glm::radians(angle), glm::vec3(1.0, 0.3, 0.5));
+                target_shader_program.set_matrix("model", model_matrix);
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
 
             // Render the lamp cube.
-            lamp_shader_program.set_used();
-            let model_matrix = glm::ext::translate(&identity_matrix(), light_position);
-            let model_matrix = glm::ext::scale(&model_matrix, glm::vec3(0.2, 0.2, 0.2));
+            // lamp_shader_program.set_used();
+            // let model_matrix = glm::ext::translate(&identity_matrix(), light_position);
+            // let model_matrix = glm::ext::scale(&model_matrix, glm::vec3(0.2, 0.2, 0.2));
 
-            lamp_shader_program.set_matrix("model", model_matrix);
-            lamp_shader_program.set_matrix("view", view_matrix);
-            lamp_shader_program.set_matrix("projection", projection_matrix);
+            // lamp_shader_program.set_matrix("model", model_matrix);
+            // lamp_shader_program.set_matrix("view", view_matrix);
+            // lamp_shader_program.set_matrix("projection", projection_matrix);
 
-            gl::BindVertexArray(lamp_vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            // gl::BindVertexArray(lamp_vao);
+            // gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
         window.swap_buffers();
 
