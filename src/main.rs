@@ -8,6 +8,7 @@ use glfw::{ Context };
 use image::GenericImageView;
 
 mod camera;
+mod model_loader;
 mod program;
 
 
@@ -46,74 +47,8 @@ fn main() {
         gl::BindVertexArray(target_vao);
     }
 
-    // Make a VBO for our cube mesh.
-    let cube_mesh: [f32; 288] = [
-        // Front face
-         0.5,  0.5,  0.5,   0.0,  0.0,  1.0,  1.0, 1.0,
-        -0.5,  0.5,  0.5,   0.0,  0.0,  1.0,  0.0, 1.0,
-        -0.5, -0.5,  0.5,   0.0,  0.0,  1.0,  0.0, 0.0,
-
-        -0.5, -0.5,  0.5,   0.0,  0.0,  1.0,  0.0, 0.0,
-         0.5, -0.5,  0.5,   0.0,  0.0,  1.0,  1.0, 0.0,
-         0.5,  0.5,  0.5,   0.0,  0.0,  1.0,  1.0, 1.0,
-
-        // Top face
-         0.5,  0.5, -0.5,   0.0,  1.0,  0.0,  1.0, 0.0,
-        -0.5,  0.5, -0.5,   0.0,  1.0,  0.0,  0.0, 0.0,
-        -0.5,  0.5,  0.5,   0.0,  1.0,  0.0,  0.0, 1.0,
-
-        -0.5,  0.5,  0.5,   0.0,  1.0,  0.0,  0.0, 1.0,
-         0.5,  0.5,  0.5,   0.0,  1.0,  0.0,  1.0, 1.0,
-         0.5,  0.5, -0.5,   0.0,  1.0,  0.0,  1.0, 0.0,
-
-        // Left face
-        -0.5,  0.5,  0.5,  -1.0,  0.0,  0.0,  1.0, 1.0,
-        -0.5,  0.5, -0.5,  -1.0,  0.0,  0.0,  1.0, 0.0,
-        -0.5, -0.5, -0.5,  -1.0,  0.0,  0.0,  0.0, 0.0,
-
-        -0.5, -0.5, -0.5,  -1.0,  0.0,  0.0,  0.0, 0.0,
-        -0.5, -0.5,  0.5,  -1.0,  0.0,  0.0,  0.0, 1.0,
-        -0.5,  0.5,  0.5,  -1.0,  0.0,  0.0,  1.0, 1.0,
-
-        // Back face
-        -0.5,  0.5, -0.5,   0.0,  0.0, -1.0,  0.0, 1.0,
-         0.5,  0.5, -0.5,   0.0,  0.0, -1.0,  1.0, 1.0,
-         0.5, -0.5, -0.5,   0.0,  0.0, -1.0,  1.0, 0.0,
-
-         0.5, -0.5, -0.5,   0.0,  0.0, -1.0,  1.0, 0.0,
-        -0.5, -0.5, -0.5,   0.0,  0.0, -1.0,  0.0, 0.0,
-        -0.5,  0.5, -0.5,   0.0,  0.0, -1.0,  0.0, 1.0,
-
-        // Right face
-         0.5,  0.5, -0.5,   1.0,  0.0,  0.0,  1.0, 0.0,
-         0.5,  0.5,  0.5,   1.0,  0.0,  0.0,  1.0, 1.0,
-         0.5, -0.5,  0.5,   1.0,  0.0,  0.0,  0.0, 1.0,
-
-         0.5, -0.5,  0.5,   1.0,  0.0,  0.0,  0.0, 1.0,
-         0.5, -0.5, -0.5,   1.0,  0.0,  0.0,  0.0, 0.0,
-         0.5,  0.5, -0.5,   1.0,  0.0,  0.0,  1.0, 0.0,
-
-        // Bottom face
-         0.5, -0.5,  0.5,   0.0, -1.0,  0.0,  1.0, 1.0,
-        -0.5, -0.5,  0.5,   0.0, -1.0,  0.0,  0.0, 1.0,
-        -0.5, -0.5, -0.5,   0.0, -1.0,  0.0,  0.0, 0.0,
-
-        -0.5, -0.5, -0.5,   0.0, -1.0,  0.0,  0.0, 0.0,
-         0.5, -0.5, -0.5,   0.0, -1.0,  0.0,  1.0, 0.0,
-         0.5, -0.5,  0.5,   0.0, -1.0,  0.0,  1.0, 1.0
-    ];
-
-    let mut cube_vbo = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut cube_vbo);
-        gl::BindBuffer(gl::ARRAY_BUFFER, cube_vbo);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            std::mem::size_of_val(&cube_mesh) as isize,
-            cube_mesh.as_ptr() as *const _,
-            gl::STATIC_DRAW
-        );
-    }
+    // Load the spaceship.
+    let spaceship_mesh = create_mesh("./assets/spaceship.obj");
 
     // Make the vertex attribute pointers.
     create_vertex_attribute_array::<f32>(0, 3, 8, 0);
@@ -193,10 +128,8 @@ fn main() {
         gl::BindVertexArray(lamp_vao);
     }
 
-    // Reuse the same mesh (VBO) for the lamp.
-    unsafe {
-        gl::BindBuffer(gl::ARRAY_BUFFER, cube_vbo);
-    }
+    // Load the cube mesh for the lamp.
+    let cube_mesh = create_mesh("./assets/cube.obj");
 
     // Make a new attribute array for it. We leave out the normals and texture coordinates,
     // because they're not important.
@@ -256,8 +189,9 @@ fn main() {
                 let mut model_matrix = glm::ext::translate(&identity_matrix(), cube_positions[i]);
                 let angle = 20.0 * i as f32;
                 model_matrix = glm::ext::rotate(&model_matrix, glm::radians(angle), glm::vec3(1.0, 0.3, 0.5));
+                model_matrix = glm::ext::scale(&model_matrix, glm::vec3(0.2, 0.2, 0.2));
                 target_shader_program.set_matrix("model", model_matrix);
-                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+                gl::DrawArrays(gl::TRIANGLES, 0, spaceship_mesh.size);
             }
 
             // Render the lamp cube.
@@ -272,7 +206,7 @@ fn main() {
                 lamp_shader_program.set_matrix("view", view_matrix);
                 lamp_shader_program.set_matrix("projection", projection_matrix);
 
-                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+                gl::DrawArrays(gl::TRIANGLES, 0, cube_mesh.size);
             }
         }
         window.swap_buffers();
@@ -339,6 +273,33 @@ fn main() {
         if window.get_key(glfw::Key::LeftShift) == glfw::Action::Press {
             camera.position = camera.position - camera.up * camera.speed * delta_time;
         }
+    }
+}
+
+
+struct Mesh {
+    id: u32,
+    size: i32
+}
+
+fn create_mesh(path: &'static str) -> Mesh {
+    let mesh: &[f32] = &model_loader::load_model(path);
+
+    let mut vbo = 0;
+    unsafe {
+        gl::GenBuffers(1, &mut vbo);
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
+            std::mem::size_of_val(mesh) as isize,
+            mesh.as_ptr() as *const _,
+            gl::STATIC_DRAW
+        );
+    }
+
+    Mesh {
+        id: vbo,
+        size: (mesh.len() / 8) as i32
     }
 }
 
