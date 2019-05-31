@@ -68,9 +68,9 @@ fn main() {
     ];
 
     target_shader_program.set_used();
-    target_shader_program.set_signed_int("material.diffuseMap", 0);
-    target_shader_program.set_signed_int("material.specularMap", 1);
-    target_shader_program.set_float("material.shininess", 32.0);
+    // target_shader_program.set_signed_int("material.diffuseMap", 0);
+    // target_shader_program.set_signed_int("material.specularMap", 1);
+    // target_shader_program.set_float("material.shininess", 32.0);
 
     target_shader_program.set_vector3("directionalLight.direction", glm::vec3(-0.2, -1.0, -0.3));
     target_shader_program.set_vector3("light.colors.ambient", glm::vec3(0.2, 0.2, 0.2));
@@ -191,7 +191,50 @@ fn main() {
                 model_matrix = glm::ext::rotate(&model_matrix, glm::radians(angle), glm::vec3(1.0, 0.3, 0.5));
                 model_matrix = glm::ext::scale(&model_matrix, glm::vec3(0.2, 0.2, 0.2));
                 target_shader_program.set_matrix("model", model_matrix);
-                gl::DrawArrays(gl::TRIANGLES, 0, spaceship_mesh.size);
+
+                let mut vertices_rendered = 0;
+
+                // Iterate over the materials.
+                for index in 0..spaceship_mesh.model.materials.len() {
+                    let material = &spaceship_mesh.model.materials[index];
+
+                    target_shader_program.set_vector3(
+                        "material.diffuseColor",
+                        glm::vec3(
+                            material.diffuse_color[0],
+                            material.diffuse_color[1],
+                            material.diffuse_color[2]
+                        )
+                    );
+                    target_shader_program.set_vector3(
+                        "material.specularColor",
+                        glm::vec3(
+                            material.specular_color[0],
+                            material.specular_color[1],
+                            material.specular_color[2]
+                        )
+                    );
+
+                    target_shader_program.set_vector3(
+                        "material.emissiveColor",
+                        glm::vec3(
+                            material.emissive_color[0],
+                            material.emissive_color[1],
+                            material.emissive_color[2]
+                        )
+                    );
+
+                    target_shader_program.set_float("material.shininess", material.shininess);
+
+                    let vertices_to_render = spaceship_mesh.model.material_indices[index] - vertices_rendered;
+
+                    gl::DrawArrays(gl::TRIANGLES, vertices_rendered, vertices_to_render);
+                    vertices_rendered = spaceship_mesh.model.material_indices[index];
+                }
+
+                if vertices_rendered < spaceship_mesh.size {
+                    panic!("Only rendered {} out of {}!", vertices_rendered, spaceship_mesh.size);
+                }
             }
 
             // Render the lamp cube.
@@ -279,11 +322,13 @@ fn main() {
 
 struct Mesh {
     id: u32,
-    size: i32
+    size: i32,
+    model: model_loader::Model
 }
 
 fn create_mesh(path: &'static str) -> Mesh {
-    let mesh: &[f32] = &model_loader::load_model(path);
+    let model = model_loader::load_model(path);
+    let mesh: &[f32] = &model.vertices;
 
     let mut vbo = 0;
     unsafe {
@@ -299,7 +344,8 @@ fn create_mesh(path: &'static str) -> Mesh {
 
     Mesh {
         id: vbo,
-        size: (mesh.len() / 8) as i32
+        size: (mesh.len() / 8) as i32,
+        model: model
     }
 }
 

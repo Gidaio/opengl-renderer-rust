@@ -1,7 +1,8 @@
 #version 330 core
 struct Material {
-    sampler2D diffuseMap;
-    sampler2D specularMap;
+    vec3 diffuseColor;
+    vec3 specularColor;
+    vec3 emissiveColor;
     float shininess;
 };
 
@@ -69,21 +70,22 @@ void main()
     }
 
     totalLight += calculateSpotlight(spotlight, normal, viewDirection);
+    totalLight += material.emissiveColor;
 
     FragColor = vec4(totalLight, 1.0);
 }
 
 
 vec3 calculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDirection) {
-    vec3 ambientLight = vec3(texture(material.diffuseMap, TextureCoordinate)) * light.colors.ambient;
+    vec3 ambientLight = material.diffuseColor * light.colors.ambient;
 
     vec3 lightDirection = normalize(-light.direction);
     float diffuseStrength = max(dot(normal, lightDirection), 0.0);
-    vec3 diffuseLight = diffuseStrength * vec3(texture(material.diffuseMap, TextureCoordinate)) * light.colors.diffuse;
+    vec3 diffuseLight = diffuseStrength * material.diffuseColor * light.colors.diffuse;
 
     vec3 reflectionDirection = reflect(-lightDirection, normal);
     float specularStrength = pow(max(dot(viewDirection, reflectionDirection), 0.0), material.shininess);
-    vec3 specularLight = specularStrength * vec3(texture(material.specularMap, TextureCoordinate)) * light.colors.specular;
+    vec3 specularLight = specularStrength * material.specularColor * light.colors.specular;
 
     return ambientLight + diffuseLight + specularLight;
 }
@@ -97,17 +99,17 @@ vec3 calculatePointLight(PointLight light, vec3 normal, vec3 viewDirection) {
         light.attenuation.quadratic * distanceToLight * distanceToLight
     );
 
-    vec3 ambientLight = vec3(texture(material.diffuseMap, TextureCoordinate)) * light.colors.ambient;
+    vec3 ambientLight = material.diffuseColor * light.colors.ambient;
     ambientLight *= attenuation;
 
     vec3 lightDirection = normalize(light.position - FragmentPosition);
     float diffuseStrength = max(dot(normal, lightDirection), 0.0);
-    vec3 diffuseLight = diffuseStrength * vec3(texture(material.diffuseMap, TextureCoordinate)) * light.colors.diffuse;
+    vec3 diffuseLight = diffuseStrength * material.diffuseColor * light.colors.diffuse;
     diffuseLight *= attenuation;
 
     vec3 reflectionDirection = reflect(-lightDirection, normal);
     float specularStrength = pow(max(dot(viewDirection, reflectionDirection), 0.0), material.shininess);
-    vec3 specularLight = specularStrength * vec3(texture(material.specularMap, TextureCoordinate)) * light.colors.specular;
+    vec3 specularLight = specularStrength * material.specularColor * light.colors.specular;
     specularLight *= attenuation;
 
     return ambientLight + diffuseLight + specularLight;
@@ -127,16 +129,16 @@ vec3 calculateSpotlight(Spotlight light, vec3 normal, vec3 viewDirection) {
         light.attenuation.quadratic * distanceToLight * distanceToLight
     );
 
-    vec3 ambientLight = vec3(texture(material.diffuseMap, TextureCoordinate)) * light.colors.ambient;
+    vec3 ambientLight = material.diffuseColor * light.colors.ambient;
     ambientLight *= attenuation;
 
     float diffuseStrength = max(dot(normal, lightDirection), 0.0);
-    vec3 diffuseLight = diffuseStrength * vec3(texture(material.diffuseMap, TextureCoordinate)) * light.colors.diffuse;
+    vec3 diffuseLight = diffuseStrength * material.diffuseColor * light.colors.diffuse;
     diffuseLight *= attenuation * intensity;
 
     vec3 reflectionDirection = reflect(-lightDirection, normal);
     float specularStrength = pow(max(dot(viewDirection, reflectionDirection), 0.0), material.shininess);
-    vec3 specularLight = specularStrength * vec3(texture(material.specularMap, TextureCoordinate)) * light.colors.specular;
+    vec3 specularLight = specularStrength * material.specularColor * light.colors.specular;
     specularLight *= attenuation * intensity;
 
     return ambientLight + diffuseLight + specularLight;

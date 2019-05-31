@@ -1,0 +1,57 @@
+# Blender MTL File: 'None'
+# Material Count: 5
+
+newmtl exhaust_burn
+Ns 96.078431
+Ka 1.000000 1.000000 1.000000
+Kd 0.681615 0.369206 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.852019 0.461507 1.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl glow_disc
+Ns 96.078431
+Ka 1.000000 1.000000 1.000000
+Kd 0.681615 0.369206 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.852019 0.461507 1.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl hull
+Ns 96.078431
+Ka 1.000000 1.000000 1.000000
+Kd 0.128466 0.093506 0.112744
+Ks 0.100000 0.100000 0.100000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Bump /home/gidaio/.config/blender/2.79/scripts/addons/add_mesh_SpaceshipGenerator/textures/hull_normal.png
+
+newmtl hull_dark
+Ns 96.078431
+Ka 1.000000 1.000000 1.000000
+Kd 0.038540 0.028052 0.033823
+Ks 0.100000 0.100000 0.100000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Bump /home/gidaio/.config/blender/2.79/scripts/addons/add_mesh_SpaceshipGenerator/textures/hull_normal.png
+
+newmtl hull_lights
+Ns 96.078431
+Ka 1.000000 1.000000 1.000000
+Kd 0.128466 0.093506 0.112744
+Ks 0.100000 0.100000 0.100000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Bump /home/gidaio/.config/blender/2.79/scripts/addons/add_mesh_SpaceshipGenerator/textures/hull_normal.png
+map_Kd /home/gidaio/.config/blender/2.79/scripts/addons/add_mesh_SpaceshipGenerator/textures/hull_lights_diffuse.png
+map_Ke /home/gidaio/.config/blender/2.79/scripts/addons/add_mesh_SpaceshipGenerator/textures/hull_lights_emit.png
