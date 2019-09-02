@@ -135,6 +135,29 @@ fn main() {
     // because they're not important.
     create_vertex_attribute_array::<f32>(0, 3, 8, 0);
 
+    // Let's draw a debug line. Make a VAO for it.
+    let mut lines_vao = 0;
+    unsafe {
+        gl::GenVertexArrays(1, &mut lines_vao);
+        gl::BindVertexArray(lines_vao);
+    }
+
+    let line_coordinates = [0.0, 0.0, 10.0, 5.0];
+
+    let mut line_vbo = 0;
+    unsafe {
+        gl::GenBuffers(1, &mut line_vbo);
+        gl::BindBuffer(gl::ARRAY_BUFFER, line_vbo);
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
+            std::mem::size_of_val(&line_coordinates) as isize,
+            line_coordinates.as_ptr() as *const _,
+            gl::STATIC_DRAW
+        );
+    }
+
+    create_vertex_attribute_array::<f32>(0, 2, 4, 0);
+
     // Set up the projection matrix (this doesn't change).
     let projection_matrix = glm::ext::perspective(glm::radians(45.0), window_width as f32 / window_height as f32, 0.1, 100.0);
 
@@ -251,6 +274,9 @@ fn main() {
 
                 gl::DrawArrays(gl::TRIANGLES, 0, cube_mesh.size);
             }
+
+            gl::BindVertexArray(lines_vao);
+            gl::DrawArrays(gl::LINES, 0, 2)
         }
         window.swap_buffers();
 
