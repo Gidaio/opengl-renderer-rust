@@ -27,7 +27,7 @@ fn main() {
     window.set_key_polling(true);
     window.set_cursor_pos_polling(true);
     window.set_framebuffer_size_polling(true);
-    window.set_cursor_mode(glfw::CursorMode::Disabled);
+    window.set_cursor_mode(glfw::CursorMode::Normal);
 
     // Setup OpenGL.
     gl::load_with(|s| window.get_proc_address(s));
@@ -142,7 +142,7 @@ fn main() {
         gl::BindVertexArray(lines_vao);
     }
 
-    let line_coordinates = [0.0, 0.0, 10.0, 5.0];
+    let line_coordinates = [0.0, 0.0, 0.0, 10.0, 5.0, 7.0];
 
     let mut line_vbo = 0;
     unsafe {
@@ -156,13 +156,13 @@ fn main() {
         );
     }
 
-    create_vertex_attribute_array::<f32>(0, 2, 4, 0);
+    create_vertex_attribute_array::<f32>(0, 3, 3, 0);
 
     // Set up the projection matrix (this doesn't change).
     let projection_matrix = glm::ext::perspective(glm::radians(45.0), window_width as f32 / window_height as f32, 0.1, 100.0);
 
     // Set up the basic camera.
-    let mut camera = camera::Camera::new(5.0, 0.1, glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 5.0));
+    let mut camera = camera::Camera::new(5.0, glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 10.0, 0.0));
 
     // This is for mouse input.
     let mut first_mouse_input = true;
@@ -275,8 +275,9 @@ fn main() {
                 gl::DrawArrays(gl::TRIANGLES, 0, cube_mesh.size);
             }
 
+            // Render the debug line.
             gl::BindVertexArray(lines_vao);
-            gl::DrawArrays(gl::LINES, 0, 2)
+            gl::DrawArrays(gl::LINES, 0, 6)
         }
         window.swap_buffers();
 
@@ -296,51 +297,45 @@ fn main() {
                     window.set_should_close(true);
                 }
 
-                glfw::WindowEvent::CursorPos(cursor_x, cursor_y) => {
-                    if first_mouse_input {
-                        previous_cursor_x = cursor_x;
-                        previous_cursor_y = cursor_y;
-                        first_mouse_input = false;
-                    }
+                // glfw::WindowEvent::CursorPos(cursor_x, cursor_y) => {
+                //     if first_mouse_input {
+                //         previous_cursor_x = cursor_x;
+                //         previous_cursor_y = cursor_y;
+                //         first_mouse_input = false;
+                //     }
 
-                    let cursor_delta_x = cursor_x - previous_cursor_x;
-                    let cursor_delta_y = cursor_y - previous_cursor_y;
+                //     let cursor_delta_x = cursor_x - previous_cursor_x;
+                //     let cursor_delta_y = cursor_y - previous_cursor_y;
 
-                    previous_cursor_x = cursor_x;
-                    previous_cursor_y = cursor_y;
+                //     previous_cursor_x = cursor_x;
+                //     previous_cursor_y = cursor_y;
 
-                    camera.pitch = camera.pitch - cursor_delta_y as f32 * camera.sensitivity;
-                    camera.yaw = camera.yaw + cursor_delta_x as f32 * camera.sensitivity;
+                //     camera.pitch = camera.pitch - cursor_delta_y as f32 * camera.sensitivity;
+                //     camera.yaw = camera.yaw + cursor_delta_x as f32 * camera.sensitivity;
 
-                    if camera.pitch > 89.0 {
-                        camera.pitch = 89.0
-                    }
-                    else if camera.pitch < -89.0 {
-                        camera.pitch = -89.0
-                    }
-                }
+                //     if camera.pitch > 89.0 {
+                //         camera.pitch = 89.0
+                //     }
+                //     else if camera.pitch < -89.0 {
+                //         camera.pitch = -89.0
+                //     }
+                // }
 
                 _ => {}
             }
         }
 
         if window.get_key(glfw::Key::E) == glfw::Action::Press {
-            camera.position = camera.position - camera.z_axis * camera.speed * delta_time;
+            camera.position = camera.position - glm::vec3(0.0, 0.0, 1.0) * camera.speed * delta_time;
         }
         if window.get_key(glfw::Key::D) == glfw::Action::Press {
-            camera.position = camera.position + camera.z_axis * camera.speed * delta_time;
+            camera.position = camera.position + glm::vec3(0.0, 0.0, 1.0) * camera.speed * delta_time;
         }
         if window.get_key(glfw::Key::F) == glfw::Action::Press {
-            camera.position = camera.position + camera.x_axis * camera.speed * delta_time;
+            camera.position = camera.position + glm::vec3(1.0, 0.0, 0.0) * camera.speed * delta_time;
         }
         if window.get_key(glfw::Key::S) == glfw::Action::Press {
-            camera.position = camera.position - camera.x_axis * camera.speed * delta_time;
-        }
-        if window.get_key(glfw::Key::Space) == glfw::Action::Press {
-            camera.position = camera.position + camera.up * camera.speed * delta_time;
-        }
-        if window.get_key(glfw::Key::LeftShift) == glfw::Action::Press {
-            camera.position = camera.position - camera.up * camera.speed * delta_time;
+            camera.position = camera.position - glm::vec3(1.0, 0.0, 0.0) * camera.speed * delta_time;
         }
     }
 }
